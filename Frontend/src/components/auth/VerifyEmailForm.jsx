@@ -1,125 +1,92 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
+import { Spinner } from '@/components/ui/spinner';
+import { motion } from 'framer-motion';
 
 const VerifyEmailForm = ({ email }) => {
-  const { verifyEmailAndSignup, loading, error } = useAuth();
-
+  const { verifyAndSignup, loading, error } = useAuth();
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [role, setRole] = useState('buyer'); // default role
+  const [role, setRole] = useState('buyer');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await verifyEmailAndSignup(email, otp, password, companyName, role, fullName);
-      // You can show success message or redirect user here
-    } catch (err) {
-      console.error(err);
-    }
+    await verifyAndSignup({ email, otp, password, companyName, role, fullName });
   };
 
   return (
-    <form
+    <motion.form
       onSubmit={handleSubmit}
-      className="bg-white p-8 rounded shadow-md w-full max-w-md mx-auto"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md border border-gray-100"
     >
-      <h2 className="text-2xl font-bold mb-6 text-center">Verify Email</h2>
-      <p className="mb-6 text-center">
-        Enter the OTP sent to your email: <strong>{email}</strong>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Verify Your Email</h2>
+
+      <p className="text-sm text-gray-600 text-center mb-6">
+        Enter the OTP sent to <strong>{email}</strong>
       </p>
 
-      {error && (
-        <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>
-      )}
+      {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded text-sm">{error}</div>}
 
-      {/* OTP Input */}
       <input
         type="text"
+        placeholder="Enter 6-digit OTP"
         maxLength={6}
-        className="w-full border rounded px-3 py-2 mb-6 text-center text-xl tracking-widest"
-        placeholder="Enter OTP"
         value={otp}
         onChange={(e) => setOtp(e.target.value)}
-        disabled={loading}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 text-center text-lg tracking-widest"
         required
       />
 
-      {/* Password */}
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold" htmlFor="password">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          className="w-full border rounded px-3 py-2"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loading}
-          required
-        />
-      </div>
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
+        required
+      />
 
-      {/* Full Name */}
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold" htmlFor="fullName">
-          Full Name
-        </label>
-        <input
-          id="fullName"
-          type="text"
-          className="w-full border rounded px-3 py-2"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          disabled={loading}
-          required
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Full Name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
+        required
+      />
 
-      {/* Company Name */}
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold" htmlFor="companyName">
-          Company Name
-        </label>
-        <input
-          id="companyName"
-          type="text"
-          className="w-full border rounded px-3 py-2"
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          disabled={loading}
-          required
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Company Name"
+        value={companyName}
+        onChange={(e) => setCompanyName(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
+        required
+      />
 
-      {/* Role Dropdown */}
-      <div className="mb-6">
-        <label className="block mb-1 font-semibold" htmlFor="role">
-          Role
-        </label>
-        <select
-          id="role"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full border rounded px-3 py-2"
-          disabled={loading}
-          required
-        >
-          <option value="buyer">Buyer</option>
-          <option value="vendor">Vendor</option>
-        </select>
-      </div>
+      <select
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-6"
+      >
+        <option value="buyer">Buyer</option>
+        <option value="vendor">Vendor</option>
+      </select>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded transition"
+        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center"
       >
-        {loading ? 'Verifying...' : 'Verify'}
+        {loading ? <Spinner className="text-white mr-2" /> : null}
+        {loading ? 'Verifying...' : 'Complete Signup'}
       </button>
-    </form>
+    </motion.form>
   );
 };
 

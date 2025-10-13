@@ -1,57 +1,49 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
+import { Spinner } from '../ui/spinner';
+import { motion } from 'framer-motion';
 
-const RegisterForm = () => {
+const RegisterForm = ({ onSuccess }) => {
   const { registerEmail, loading, error } = useAuth();
   const [email, setEmail] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const handleChange = (e) => {
-    setEmail(e.target.value);
-  };
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccess(false);
     try {
-      await registerEmail(email); // assuming this returns a promise
-      setSuccess(true);
+      const res = await registerEmail(email);
+      setSuccessMsg(res.message);
+      onSuccess(email);
     } catch (err) {
       console.error(err);
     }
   };
 
   return (
-    <form
+    <motion.form
       onSubmit={handleSubmit}
-      className="bg-white p-8 rounded shadow-md w-full max-w-md mx-auto"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md border border-gray-100"
     >
-      <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Create Account</h2>
 
       {error && (
-        <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">
-          {error}
-        </div>
+        <div className="bg-red-100 text-red-700 p-2 rounded mb-4 text-sm">{error}</div>
       )}
 
-      {success && (
-        <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">
-          Registration email sent successfully!
-        </div>
+      {successMsg && (
+        <div className="bg-green-100 text-green-700 p-2 rounded mb-4 text-sm">{successMsg}</div>
       )}
 
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold" htmlFor="email">
-          Email
-        </label>
+      <div className="mb-6">
+        <label className="block text-gray-700 mb-1 font-semibold">Email</label>
         <input
-          id="email"
-          name="email"
           type="email"
-          className="w-full border rounded px-3 py-2"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500"
           value={email}
-          onChange={handleChange}
-          disabled={loading}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
       </div>
@@ -59,11 +51,12 @@ const RegisterForm = () => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded transition"
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center"
       >
-        {loading ? 'Registering...' : 'Register'}
+        {loading ? <Spinner className="text-white mr-2" /> : null}
+        {loading ? 'Sending OTP...' : 'Register'}
       </button>
-    </form>
+    </motion.form>
   );
 };
 
