@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/AuthContext';
 import { Spinner } from '../ui/spinner';
 import { motion } from 'framer-motion';
 
