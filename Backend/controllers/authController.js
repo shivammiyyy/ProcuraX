@@ -3,7 +3,7 @@ import User from '../models/userModel.js';
 import { sendEmail } from '../utils/mailer.js';
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
 export const registerEmail = async (req, res) => {

@@ -1,6 +1,9 @@
 import Quotation from "../models/quotationModel.js";
 import Rfq from "../models/RfqModel.js";
 import { predictVendorScore } from "../utils/complianceScore.js";
+import User from "../models/userModel.js";
+import sendEmail from "../utils/mailer.js";
+
 
 export const createQuotation = async (req, res) => {
   try {
