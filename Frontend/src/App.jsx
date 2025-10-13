@@ -19,14 +19,70 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
 
-          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/rfqs" element={<ProtectedRoute><RfqListPage /></ProtectedRoute>} />
-          <Route path="/rfqs/create" element={<ProtectedRoute><RfqCreatePage /></ProtectedRoute>} />
-          <Route path="/rfqs/:id" element={<ProtectedRoute><RfqDetailsPage /></ProtectedRoute>} />
-          <Route path="/quotations" element={<ProtectedRoute><QuotationListPage /></ProtectedRoute>} />
-          <Route path="/quotations/create/:rfqId" element={<ProtectedRoute><QuotationCreatePage /></ProtectedRoute>} />
-          <Route path="/quotations/:id" element={<ProtectedRoute><QuotationDetailsPage /></ProtectedRoute>} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs"
+            element={
+              <ProtectedRoute>
+                <RfqListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs/create"
+            element={
+              <ProtectedRoute>
+                <RfqCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rfqs/:id"
+            element={
+              <ProtectedRoute>
+                <RfqDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations"
+            element={
+              <ProtectedRoute>
+                <QuotationListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/create/:rfqId"
+            element={
+              <ProtectedRoute>
+                <QuotationCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/:id"
+            element={
+              <ProtectedRoute>
+                <QuotationDetailsPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,2 +1,13 @@
 import Navbar from '../../components/common/Navbar';
-export default function RfqCreatePage() { return (<><Navbar /><div className='p-8'>RFQ Create Page</div></>); }
+import RfqForm from '../../components/rfq/RfqForm';
+
+export default function RfqCreatePage() {
+  return (
+    <>
+      <Navbar />
+      <div className="p-8">
+        <RfqForm />
+      </div>
+    </>
+  );
+}

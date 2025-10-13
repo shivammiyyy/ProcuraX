@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createContract } from '../../api/contractApi'; // adjust path if needed
+import { createContract } from '../../api/contractApi';
 
 const ContractForm = () => {
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ const ContractForm = () => {
       });
 
       const response = await createContract(data);
-      setMessage(response.data.message || 'Contract created successfully!');
+      setMessage(response.message || 'Contract created successfully!');
       setFormData({
         rfqId: '',
         vendorId: '',

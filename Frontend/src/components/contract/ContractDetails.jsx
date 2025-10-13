@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getContractById } from '../../api/contractApi'; // adjust path if needed
+import { getContractById } from '../../api/contractApi';
 
 const ContractDetails = () => {
   const { id } = useParams();
@@ -12,7 +12,7 @@ const ContractDetails = () => {
     const fetchContract = async () => {
       try {
         const response = await getContractById(id);
-        setContract(response.data.contract);
+        setContract(response.contract);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load contract details');
       } finally {

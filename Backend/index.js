@@ -9,26 +9,43 @@ import contractRoutes from './routes/contractRoutes.js';
 
 dotenv.config();
 
-await connectDB(); // ensure DB connects before starting (connectDB returns a Promise)
+const startServer = async () => {
+  try {
+    await connectDB(); // Connect to MongoDB before starting server
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+    const app = express();
+    const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json()); // built-in body parser
+    // Configure CORS - restrict origins in production as needed
+    app.use(
+      cors({
+        origin: process.env.FRONTEND_URL || '*', // Replace '*' with frontend URL in production
+        credentials: true,
+      })
+    );
 
-app.get('/', (req, res) => res.send('Hello World!'));
-app.use('/api/v0/auth', authRoutes);
-app.use('/api/v0/rfq', rfqRoutes);
-app.use('/api/v0/quotation', quotationRoutes);
-app.use('/api/v0/contract', contractRoutes);
+    app.use(express.json()); // Body parser for JSON
 
-// global error handler (minimal)
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ message: 'Internal Server Error' });
-});
+    // Add routes
+    app.get('/', (req, res) => res.send('Hello World!'));
+    app.use('/api/v0/auth', authRoutes);
+    app.use('/api/v0/rfq', rfqRoutes);
+    app.use('/api/v0/quotation', quotationRoutes);
+    app.use('/api/v0/contract', contractRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    // Minimal centralized error handler middleware
+    app.use((err, req, res, next) => {
+      console.error('Unhandled error:', err);
+      res.status(500).json({ message: 'Internal Server Error' });
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

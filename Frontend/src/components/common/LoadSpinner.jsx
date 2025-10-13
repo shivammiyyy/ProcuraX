@@ -1,5 +1,5 @@
-import React from 'react'
-import { Spinner } from "../ui/spinner"
+import React from 'react';
+import { Spinner } from "../ui/spinner";
 
 const LoadSpinner = () => {
   return (
@@ -8,7 +8,7 @@ const LoadSpinner = () => {
         <Spinner />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoadSpinner
+export default LoadSpinner;

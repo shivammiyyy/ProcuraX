@@ -14,7 +14,6 @@ export const registerEmail = async (req, res) => {
     const userExists = await User.findOne({ email });
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Always use the utility function for email sending!
     if (userExists) {
       if (!userExists.isVerified) {
         userExists.otp = otp;
@@ -49,7 +48,7 @@ export const registerEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -79,7 +78,7 @@ export const verifyEmailAndSignup = async (req, res) => {
     await user.save();
 
     const token = generateToken(user._id);
-    const { password: pw, otp: _otp,  ...userSafe } = user.toObject();
+    const { password: pw, otp: _otp, ...userSafe } = user.toObject();
 
     res.status(200).json({
       message: 'Email verified and user signed up successfully',
@@ -88,7 +87,7 @@ export const verifyEmailAndSignup = async (req, res) => {
     });
   } catch (error) {
     console.error('Error verifying email:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -114,18 +113,18 @@ export const authUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error authenticating user:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 export const getCurrentUser = async (req, res) => {
   try {
     if (!req.user || !req.user._id) return res.status(401).json({ message: 'Not authorized' });
-    const user = await User.findById(req.user._id).select('-password -otp ');
+    const user = await User.findById(req.user._id).select('-password -otp');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json({ user });
   } catch (err) {
     console.error('Error in getCurrentUser:', err);
-    res.status(500).json({ message: 'Internal Server Error', error: err.message });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };

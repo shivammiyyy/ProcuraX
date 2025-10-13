@@ -21,7 +21,6 @@ const Navbar = () => {
   };
 
   const isBuyer = user?.role === 'buyer';
-  const isVendor = user?.role === 'vendor';
 
   return (
     <nav className="bg-white border-b shadow-sm sticky top-0 z-50">

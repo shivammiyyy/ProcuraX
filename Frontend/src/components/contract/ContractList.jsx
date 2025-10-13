@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getContracts } from '../../api/contractApi'; // adjust path if needed
+import { getContracts } from '../../api/contractApi';
 
 const ContractList = () => {
   const [contracts, setContracts] = useState([]);
@@ -11,7 +11,7 @@ const ContractList = () => {
     const fetchContracts = async () => {
       try {
         const response = await getContracts();
-        setContracts(response.data.contracts || []);
+        setContracts(response.contracts || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load contracts');
       } finally {
@@ -33,7 +33,9 @@ const ContractList = () => {
         >
           <div>
             <h2 className="text-xl font-semibold">{contract.rfq?.title || 'Untitled Contract'}</h2>
-            <p className="text-gray-600">{contract.rfq?.description?.substring(0, 100)}</p>
+            <p className="text-gray-600">
+              {contract.rfq?.description?.substring(0, 100)}
+            </p>
           </div>
           <Link
             to={`/contracts/${contract._id}`}

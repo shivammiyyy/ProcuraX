@@ -1,8 +1,7 @@
-import { createContext, useState ,useContext, useEffect} from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 import * as authApi from '../api/authApi';
 
-
-// Create Context
+// Create AuthContext
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -17,13 +16,12 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!token;
 
-  // 🔹 Register user email to send OTP
   const registerEmail = async (email) => {
     try {
       setLoading(true);
       setError(null);
       const data = await authApi.registerEmail(email);
-      return data; // returns { message, userId }
+      return data;
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
       throw err;
@@ -32,7 +30,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Verify OTP and complete signup
   const verifyAndSignup = async ({ email, otp, password, companyName, role, fullName }) => {
     try {
       setLoading(true);
@@ -53,7 +50,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Login user
   const login = async (email, password) => {
     try {
       setLoading(true);
@@ -74,7 +70,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔹 Get current user (validate token)
   const fetchCurrentUser = async () => {
     try {
       setLoading(true);
@@ -83,13 +78,12 @@ export const AuthProvider = ({ children }) => {
       return data.user;
     } catch (err) {
       console.error('Error fetching user:', err);
-      logout(); // token invalid
+      logout();
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 Logout user
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -97,7 +91,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
-  // 🔹 Auto-fetch user when token exists
   useEffect(() => {
     if (token && !user) {
       fetchCurrentUser();
@@ -120,5 +113,5 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom Hook
+// Custom hook for easy usage of AuthContext
 export const useAuth = () => useContext(AuthContext);

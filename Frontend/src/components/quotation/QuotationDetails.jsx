@@ -1,76 +1,52 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getQuotationById, updateQuotation } from '../../api/quotationApi';
+import Navbar from '../../components/common/Navbar';
 
-const QuotationDetails = ({ quotation }) => {
-  if (!quotation) return <p>Loading...</p>;
+const QuotationDetails = () => {
+  const { id } = useParams();
+  const [quotation, setQuotation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const {
-    rfq,
-    vendor,
-    price,
-    deliveryTimeDays,
-    compliance,
-    vendorScore,
-    attachments,
-    status,
-  } = quotation;
+  useEffect(() => {
+    const fetchQuotation = async () => {
+      try {
+        const response = await getQuotationById(id);
+        const data = response?.data?.quotation;
+        setQuotation(data);
+
+        // ✅ Mark as "in_progress" if not already
+        if (data && data.status !== 'in_progress') {
+          await updateQuotation(id, { status: 'in_progress' });
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load quotation details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuotation();
+  }, [id]);
 
   return (
-    <div className="bg-white p-8 rounded shadow-md max-w-3xl mx-auto">
-      <h2 className="text-3xl font-bold mb-4">
-        Quotation for {rfq?.title || 'RFQ'}
-      </h2>
-
-      <div className="mb-4 text-gray-700">
-        <p className="mb-2">
-          <span className="font-semibold">RFQ Description:</span>{' '}
-          {rfq?.description || 'No description provided.'}
-        </p>
-        <p className="mb-2">
-          <span className="font-semibold">Vendor:</span>{' '}
-          {vendor?.companyName || vendor?.fullName}
-        </p>
-        <p className="mb-2">
-          <span className="font-semibold">Price:</span> ₹{price}
-        </p>
-        <p className="mb-2">
-          <span className="font-semibold">Delivery Time:</span>{' '}
-          {deliveryTimeDays} days
-        </p>
-        <p className="mb-2">
-          <span className="font-semibold">Vendor Score:</span>{' '}
-          {vendorScore?.toFixed(2) || 'N/A'}
-        </p>
-        <p className="mb-4">
-          <span className="font-semibold">Status:</span>{' '}
-          <span className="capitalize">{status || 'pending'}</span>
-        </p>
+    <>
+      <Navbar />
+      <div className="p-8">
+        {loading && <p>Loading quotation details...</p>}
+        {error && <p className="text-red-600">{error}</p>}
+        {!loading && !error && quotation && (
+          <div className="bg-white p-8 rounded shadow max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">Quotation Details</h2>
+            <p><strong>Vendor:</strong> {quotation.vendor?.companyName || quotation.vendor?.fullName}</p>
+            <p><strong>Amount:</strong> ₹{quotation.amount}</p>
+            <p><strong>Status:</strong> {quotation.status}</p>
+            <p><strong>Notes:</strong> {quotation.notes || 'No additional details'}</p>
+          </div>
+        )}
       </div>
-
-      <h3 className="text-xl font-semibold mb-2">Compliance Details</h3>
-      <ul className="list-disc list-inside text-gray-600 mb-4">
-        <li>ISO Certification: {compliance?.ISO_Certification ? 'Yes' : 'No'}</li>
-        <li>Material Grade: {compliance?.Material_Grade || 'N/A'}</li>
-        <li>Environmental Standards: {compliance?.Environmental_Standards ? 'Yes' : 'No'}</li>
-        <li>Document Submission: {compliance?.Document_Submission ? 'Yes' : 'No'}</li>
-      </ul>
-
-      {attachments?.length > 0 && (
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Attachments</h3>
-          {attachments.map((file, idx) => (
-            <a
-              key={idx}
-              href={file.filePath}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-blue-600 hover:underline mb-1"
-            >
-              {file.fileName}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 

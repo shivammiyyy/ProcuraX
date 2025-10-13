@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useAuth } from '../../context/AuthContext';
 
 const QuotationForm = ({ rfqId }) => {
   const { user, loading } = useAuth();
@@ -21,21 +21,18 @@ const QuotationForm = ({ rfqId }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // ✅ Handle text/number input
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle file input
   const handleFileChange = (e) => {
-    setFormData((prev) => ({ ...prev, file: e.target.files[0] }));
+    setFormData(prev => ({ ...prev, file: e.target.files[0] }));
   };
 
-  // ✅ Handle compliance field changes
   const handleComplianceChange = (e) => {
-    const { name, type, value, checked } = e.target;
-    setFormData((prev) => ({
+    const { name, type, checked, value } = e.target;
+    setFormData(prev => ({
       ...prev,
       compliance: {
         ...prev.compliance,
@@ -44,7 +41,6 @@ const QuotationForm = ({ rfqId }) => {
     }));
   };
 
-  // ✅ Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -65,7 +61,6 @@ const QuotationForm = ({ rfqId }) => {
       data.append('compliance', JSON.stringify(formData.compliance));
       data.append('file', formData.file);
 
-      // Replace with your backend API endpoint
       const res = await axios.post('/api/v0/quotation', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -86,7 +81,6 @@ const QuotationForm = ({ rfqId }) => {
         file: null,
       });
     } catch (err) {
-      console.error('Error submitting quotation:', err);
       setErrorMsg(err.response?.data?.message || 'Failed to create quotation.');
     } finally {
       setSubmitting(false);
