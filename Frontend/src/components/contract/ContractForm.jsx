@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createContract } from '../../api/contractApi';
+import { useAuth } from '../../context/AuthContext';
 
 const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
   const navigate = useNavigate();
-
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     rfqId: '',
     vendorId: '',
@@ -15,13 +16,15 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
     endDate: '',
     contractFile: null,
   });
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  // ✅ Auto-fill props once available
   useEffect(() => {
+    if (user.role !== 'buyer' || user._id !== buyerId) {
+      setError('You are not authorized to create this contract.');
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       rfqId: rfqId || '',
@@ -29,9 +32,8 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
       buyerId: buyerId || '',
       quotationId: quotationId || '',
     }));
-  }, [rfqId, vendorId, buyerId, quotationId]);
+  }, [rfqId, vendorId, buyerId, quotationId, user]);
 
-  // ✅ Handle input + file changes
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'contractFile') {
@@ -41,9 +43,12 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
     }
   };
 
-  // ✅ Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (user.role !== 'buyer' || user._id !== buyerId) {
+      setError('You are not authorized to create this contract.');
+      return;
+    }
     setLoading(true);
     setMessage(null);
     setError(null);
@@ -55,16 +60,16 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
       });
 
       const response = await createContract(data);
-      setMessage(response.message || '✅ Contract created successfully!');
-
-      // Redirect after delay
+      setMessage(response.message || 'Contract created successfully!');
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || '❌ Failed to create contract');
+      setError(err.response?.data?.message || 'Failed to create contract');
     } finally {
       setLoading(false);
     }
   };
+
+  if (error) return <p className="text-red-600">{error}</p>;
 
   return (
     <form
@@ -73,8 +78,6 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
       encType="multipart/form-data"
     >
       <h2 className="text-3xl font-bold mb-6 text-gray-800 text-center">Create Contract</h2>
-
-      {/* ✅ Success & Error Messages */}
       {message && (
         <div className="bg-green-100 text-green-700 border border-green-400 p-2 mb-4 rounded text-center">
           {message}
@@ -85,13 +88,9 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           {error}
         </div>
       )}
-
-      {/* Hidden Prefilled IDs */}
       {['rfqId', 'vendorId', 'buyerId', 'quotationId'].map((field) => (
         <input key={field} type="hidden" name={field} value={formData[field]} />
       ))}
-
-      {/* Content Field */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold text-gray-700" htmlFor="content">
           Contract Content
@@ -108,8 +107,6 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           placeholder="Enter key contract terms and clauses..."
         />
       </div>
-
-      {/* Dates */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-semibold text-gray-700" htmlFor="startDate">
@@ -126,7 +123,6 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
             required
           />
         </div>
-
         <div>
           <label className="block mb-1 font-semibold text-gray-700" htmlFor="endDate">
             End Date
@@ -143,8 +139,6 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           />
         </div>
       </div>
-
-      {/* File Upload */}
       <div className="mt-4">
         <label className="block mb-1 font-semibold text-gray-700" htmlFor="contractFile">
           Upload Contract File (optional)
@@ -159,8 +153,6 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         />
       </div>
-
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}

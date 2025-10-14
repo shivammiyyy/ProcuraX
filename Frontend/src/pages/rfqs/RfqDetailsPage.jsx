@@ -1,5 +1,5 @@
-import Navbar from '../../components/common/Navbar';
 import React, { useEffect, useState } from 'react';
+import Navbar from '../../components/common/Navbar';
 import { useParams } from 'react-router-dom';
 import { getRfqById } from '../../api/rfqApi';
 import RfqDetails from '../../components/rfq/RfqDetails';
@@ -14,7 +14,7 @@ export default function RfqDetailsPage() {
     const fetchRfq = async () => {
       try {
         const response = await getRfqById(id);
-        setRfq(response?.data?.rfq || null); // ✅ fixed
+        setRfq(response?.data?.rfq || null);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load RFQ details');
       } finally {

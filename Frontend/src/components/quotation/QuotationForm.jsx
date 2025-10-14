@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { createQuotation } from '../../api/quotationApi';
+import { useNavigate } from 'react-router-dom';
 
 const QuotationForm = ({ rfqId }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     price: '',
     deliveryTimeDays: '',
@@ -12,24 +14,20 @@ const QuotationForm = ({ rfqId }) => {
       Document_Submission: false,
     },
   });
-
   const [attachments, setAttachments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Handle text input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle file upload (multiple files)
   const handleFileChange = (e) => {
     setAttachments(Array.from(e.target.files));
   };
 
-  // Handle compliance checkbox and dropdown changes
   const handleComplianceChange = (e) => {
     const { name, type, checked, value } = e.target;
     setFormData((prev) => ({
@@ -41,7 +39,6 @@ const QuotationForm = ({ rfqId }) => {
     }));
   };
 
-  // Form submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -60,11 +57,9 @@ const QuotationForm = ({ rfqId }) => {
       data.append('price', formData.price);
       data.append('deliveryTimeDays', formData.deliveryTimeDays);
       data.append('compliance', JSON.stringify(formData.compliance));
-
       attachments.forEach((file) => data.append('attachments', file));
 
       const res = await createQuotation(data);
-
       setSuccessMsg(res.data.message || 'Quotation created successfully!');
       setFormData({
         price: '',
@@ -77,6 +72,7 @@ const QuotationForm = ({ rfqId }) => {
         },
       });
       setAttachments([]);
+      navigate('/');
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Failed to create quotation.');
     } finally {
@@ -91,11 +87,8 @@ const QuotationForm = ({ rfqId }) => {
       encType="multipart/form-data"
     >
       <h2 className="text-2xl font-bold mb-6">Submit Quotation</h2>
-
       {errorMsg && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{errorMsg}</div>}
       {successMsg && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{successMsg}</div>}
-
-      {/* Price */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Price</label>
         <input
@@ -106,10 +99,9 @@ const QuotationForm = ({ rfqId }) => {
           required
           className="w-full border rounded px-3 py-2"
           placeholder="Enter quoted price"
+          disabled={submitting}
         />
       </div>
-
-      {/* Delivery Time */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Delivery Time (Days)</label>
         <input
@@ -120,12 +112,10 @@ const QuotationForm = ({ rfqId }) => {
           required
           className="w-full border rounded px-3 py-2"
           placeholder="Enter delivery duration"
+          disabled={submitting}
         />
       </div>
-
-      {/* Compliance Section */}
       <h3 className="text-lg font-semibold mb-2">Compliance Details</h3>
-
       <div className="mb-2">
         <label className="flex items-center gap-2">
           <input
@@ -133,11 +123,11 @@ const QuotationForm = ({ rfqId }) => {
             name="ISO_Certification"
             checked={formData.compliance.ISO_Certification}
             onChange={handleComplianceChange}
+            disabled={submitting}
           />
           ISO Certification
         </label>
       </div>
-
       <div className="mb-2">
         <label className="block mb-1 font-semibold">Material Grade</label>
         <select
@@ -145,13 +135,13 @@ const QuotationForm = ({ rfqId }) => {
           value={formData.compliance.Material_Grade}
           onChange={handleComplianceChange}
           className="w-full border rounded px-3 py-2"
+          disabled={submitting}
         >
           <option value="A+">A+</option>
           <option value="A">A</option>
           <option value="B">B</option>
         </select>
       </div>
-
       <div className="mb-2">
         <label className="flex items-center gap-2">
           <input
@@ -159,11 +149,11 @@ const QuotationForm = ({ rfqId }) => {
             name="Environmental_Standards"
             checked={formData.compliance.Environmental_Standards}
             onChange={handleComplianceChange}
+            disabled={submitting}
           />
           Environmental Standards
         </label>
       </div>
-
       <div className="mb-4">
         <label className="flex items-center gap-2">
           <input
@@ -171,12 +161,11 @@ const QuotationForm = ({ rfqId }) => {
             name="Document_Submission"
             checked={formData.compliance.Document_Submission}
             onChange={handleComplianceChange}
+            disabled={submitting}
           />
           Document Submission
         </label>
       </div>
-
-      {/* File Upload */}
       <div className="mb-6">
         <label className="block mb-1 font-semibold">Upload Attachments</label>
         <input
@@ -186,9 +175,9 @@ const QuotationForm = ({ rfqId }) => {
           onChange={handleFileChange}
           multiple
           className="w-full border rounded px-3 py-2"
+          disabled={submitting}
         />
       </div>
-
       <button
         type="submit"
         disabled={submitting}

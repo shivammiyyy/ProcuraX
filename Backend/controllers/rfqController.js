@@ -136,3 +136,22 @@ export const deleteRfq = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete RFQ' });
   }
 };
+
+
+export const getQuotationByRFQId = async (req, res) => {
+  try {
+    const { rfqId } = req.params;
+
+    const rfq = await Rfq.findById(rfqId);
+    if (!rfq) return res.status(404).json({ message: 'RFQ not found' });
+
+    const quotations = await Quotation.find({ rfq: rfqId })  // ✅ fixed here
+      .populate('vendor', 'fullName companyName email')
+      .select('price status deliveryTimeDays attachments createdAt');
+
+    res.status(200).json({ quotations });
+  } catch (error) {
+    console.error('Error fetching quotations by RFQ:', error);
+    res.status(500).json({ message: 'Failed to fetch quotations for RFQ' });
+  }
+};

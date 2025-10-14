@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -14,15 +15,14 @@ import RfqCreatePage from './pages/rfqs/RfqCreatePage';
 import RfqDetailsPage from './pages/rfqs/RfqDetailsPage';
 
 // Quotation Pages
-import QuotationListPage from './pages/Quotations/QuotationListPage';
-import QuotationCreatePage from './pages/Quotations/QuotationCreatePage';
-import QuotationDetailsPage from './pages/Quotations/QuotationDetailsPage';
+import QuotationListPage from './pages/quotations/QuotationListPage';
+import QuotationCreatePage from './pages/quotations/QuotationCreatePage';
+import QuotationDetailsPage from './pages/quotations/QuotationDetailsPage';
 
 // Contract Pages
-import ContractCreatePage from './pages/contract/ContractCreatePage'; // ✅ new route
-
-// Auth Protection
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import ContractCreatePage from './pages/contract/ContractCreatePage';
+import ContractListPage from './pages/contract/ContractListPage';
+import ContractDetailsPage from './pages/contract/ContractDetailsPage';
 
 function App() {
   return (
@@ -63,7 +63,7 @@ function App() {
           <Route
             path="/rfqs/create"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute role="buyer">
                 <RfqCreatePage />
               </ProtectedRoute>
             }
@@ -89,7 +89,7 @@ function App() {
           <Route
             path="/quotations/create/:rfqId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute role="vendor">
                 <QuotationCreatePage />
               </ProtectedRoute>
             }
@@ -103,12 +103,28 @@ function App() {
             }
           />
 
-          {/* ✅ New Contract Route */}
+          {/* Contracts */}
+          <Route
+            path="/contracts"
+            element={
+              <ProtectedRoute>
+                <ContractListPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/contracts/create/:quotationId"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute role="buyer">
                 <ContractCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts/:id"
+            element={
+              <ProtectedRoute>
+                <ContractDetailsPage />
               </ProtectedRoute>
             }
           />

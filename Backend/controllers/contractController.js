@@ -1,5 +1,7 @@
 import Contract from "../models/contractModel.js";
+import User from "../models/userModel.js";
 import { auditContractWithGemini } from "../utils/geminiService.js";
+import { sendEmail } from "../utils/mailer.js";
 
 // @desc Create a new contract
 // @route POST /api/v0/contract
@@ -32,7 +34,19 @@ export const createContract = async (req, res) => {
       auditWarnings: geminiAudit.auditWarnings,
     });
 
+    const buyer = User.findById(buyerId);
+    const vendor= User.findById(vendorId);
     await newContract.save();
+    await sendEmail(
+      vendor.email,
+      `Contract is created by the Buyer please check it`.
+      JSON.toString(newContract)
+    );
+    await sendEmail(
+      buyer.email,
+      `Contract is created by the Buyer please check it`.
+      JSON.toString(newContract)
+    );
     res.status(201).json({ message: 'Contract created successfully.', contract: newContract });
   } catch (error) {
     console.error('Error creating contract:', error);
