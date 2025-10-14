@@ -1,6 +1,7 @@
 import User from '../models/userModel.js';
 import Rfq from '../models/RfqModel.js';
 import { sendEmail } from '../utils/mailer.js';
+import Quotation from '../models/quotationModel.js';
 
 export const createRfq = async (req, res) => {
   const { title, description, requestType, budget, deadline, category } = req.body;
@@ -136,7 +137,6 @@ export const deleteRfq = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete RFQ' });
   }
 };
-
 
 export const getQuotationByRFQId = async (req, res) => {
   try {

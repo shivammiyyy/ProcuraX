@@ -20,19 +20,25 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
+  // Normalize buyerId to string for safe comparison
+  const buyerIdStr = buyerId?._id || buyerId || '';
+  console.log(buyerIdStr);
+
   useEffect(() => {
-    if (user.role !== 'buyer' || user._id !== buyerId) {
+    console.log(buyerIdStr);
+    if (!user || user.role !== 'buyer' || String(user._id) !== String(buyerIdStr)) {
       setError('You are not authorized to create this contract.');
       return;
     }
+
     setFormData((prev) => ({
       ...prev,
       rfqId: rfqId || '',
       vendorId: vendorId || '',
-      buyerId: buyerId || '',
+      buyerId: buyerIdStr,
       quotationId: quotationId || '',
     }));
-  }, [rfqId, vendorId, buyerId, quotationId, user]);
+  }, [rfqId, vendorId, buyerIdStr, quotationId, user]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -45,10 +51,11 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (user.role !== 'buyer' || user._id !== buyerId) {
+    if (!user || user.role !== 'buyer' || String(user._id) !== String(buyerIdStr)) {
       setError('You are not authorized to create this contract.');
       return;
     }
+
     setLoading(true);
     setMessage(null);
     setError(null);
@@ -83,14 +90,10 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           {message}
         </div>
       )}
-      {error && (
-        <div className="bg-red-100 text-red-700 border border-red-400 p-2 mb-4 rounded text-center">
-          {error}
-        </div>
-      )}
       {['rfqId', 'vendorId', 'buyerId', 'quotationId'].map((field) => (
         <input key={field} type="hidden" name={field} value={formData[field]} />
       ))}
+
       <div className="mb-4">
         <label className="block mb-1 font-semibold text-gray-700" htmlFor="content">
           Contract Content
@@ -107,6 +110,7 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           placeholder="Enter key contract terms and clauses..."
         />
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-semibold text-gray-700" htmlFor="startDate">
@@ -139,6 +143,7 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           />
         </div>
       </div>
+
       <div className="mt-4">
         <label className="block mb-1 font-semibold text-gray-700" htmlFor="contractFile">
           Upload Contract File (optional)
@@ -153,6 +158,7 @@ const ContractForm = ({ rfqId, vendorId, buyerId, quotationId }) => {
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         />
       </div>
+
       <button
         type="submit"
         disabled={loading}

@@ -13,7 +13,7 @@ export const createContract = async (req, res) => {
     ? { fileName: req.file.originalname, filePath: req.file.path }
     : null;
 
-  if (!rfqId || !vendorId || !buyerId || !quotationId || !content || !startDate || !endDate ) {
+  if (!rfqId || !vendorId || !buyerId || !quotationId || !content || !startDate || !endDate) {
     return res.status(400).json({ message: 'Please enter all required fields for the contract.' });
   }
 
@@ -34,25 +34,36 @@ export const createContract = async (req, res) => {
       auditWarnings: geminiAudit.auditWarnings,
     });
 
-    const buyer = User.findById(buyerId);
-    const vendor= User.findById(vendorId);
+    // Save the contract first
     await newContract.save();
-    await sendEmail(
-      vendor.email,
-      `Contract is created by the Buyer please check it`.
-      JSON.toString(newContract)
-    );
-    await sendEmail(
-      buyer.email,
-      `Contract is created by the Buyer please check it`.
-      JSON.toString(newContract)
-    );
+
+    // Fetch buyer and vendor details
+    const buyer = await User.findById(buyerId);
+    const vendor = await User.findById(vendorId);
+
+    // Send emails
+    if (vendor && vendor.email) {
+      await sendEmail(
+        vendor.email,
+        'Contract Created',
+        `A new contract has been created by the Buyer. Details:\n\n${JSON.stringify(newContract, null, 2)}`
+      );
+    }
+    if (buyer && buyer.email) {
+      await sendEmail(
+        buyer.email,
+        'Contract Created',
+        `Your contract has been successfully created. Details:\n\n${JSON.stringify(newContract, null, 2)}`
+      );
+    }
+
     res.status(201).json({ message: 'Contract created successfully.', contract: newContract });
   } catch (error) {
     console.error('Error creating contract:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 // @desc Get all contracts (by user role)
 // @route GET /api/v0/contract
@@ -88,15 +99,16 @@ export const getContractById = async (req, res) => {
       .populate('rfq', 'title description')
       .populate('vendor', 'fullName companyName')
       .populate('buyer', 'fullName companyName')
-      .populate('quotation', 'price');
+      .populate('quotation', 'price')
+      .populate('contractFile')
 
     if (!contract) {
       return res.status(404).json({ message: 'Contract not found' });
     }
 
     if (
-      (req.user.role === 'buyer' && contract.buyer.toString() !== req.user._id.toString()) ||
-      (req.user.role === 'vendor' && contract.vendor.toString() !== req.user._id.toString())
+      (req.user.role === 'buyer' && contract.buyer.toString() === req.user._id.toString()) ||
+      (req.user.role === 'vendor' && contract.vendor.toString() === req.user._id.toString())
     ) {
       return res.status(403).json({ message: 'Not authorized to view this contract' });
     }

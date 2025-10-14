@@ -25,9 +25,7 @@ export const deleteRfq = (id) => {
     return axiosApi.delete(`/rfq/${id}`);
 };
 
-export const getQuotationsForRfq = (rfqId) => {
-    return axiosApi.get(`/quotation?rfqId=${rfqId}`);
-};
+
 
 export const getQuotationByRFQId = (rfqId) => {
   return axiosApi.get(`/rfq/${rfqId}/quotations`);

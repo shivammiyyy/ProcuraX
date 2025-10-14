@@ -60,7 +60,7 @@ export const getQuotations = async (req, res) => {
 
     const quotations = await Quotation.find(query)
       .populate('rfq', 'title description budget status')
-      .populate('vendor', 'fullName companyName email budget description');
+      .populate('vendor', 'fullName companyName email budget');
 
     res.status(200).json({ quotations });
   } catch (error) {
@@ -72,8 +72,8 @@ export const getQuotations = async (req, res) => {
 export const getQuotationById = async (req, res) => {
   try {
     const quotation = await Quotation.findById(req.params.id)
-      .populate('rfq', 'title description budget status Buyer')
-      .populate('vendor', 'fullName companyName email');
+      .populate('rfq', 'title description budget status Buyer attachments')
+      .populate('vendor', 'fullName companyName email attachments');
 
     if (!quotation) {
       return res.status(404).json({ message: 'Quotation not found' });
@@ -180,4 +180,3 @@ export const deleteQuotation = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete quotation' });
   }
 };
-

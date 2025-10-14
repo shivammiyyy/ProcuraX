@@ -19,7 +19,7 @@ const ContractCreatePage = () => {
         if (response.data.quotation.status !== 'accepted') {
           throw new Error('Quotation must be accepted to create a contract.');
         }
-        if (user._id !== response.data.quotation.rfq?.Buyer?._id) {
+        if (user._id !== response.data.quotation.rfq?.Buyer) {
           throw new Error('You are not authorized to create this contract.');
         }
         setQuotation(response.data.quotation);

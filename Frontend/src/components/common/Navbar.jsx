@@ -44,6 +44,12 @@ const Navbar = () => {
                   RFQs
                 </Button>
               </Link>
+              <Link to="/contracts">
+                <Button variant="ghost" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Contracts
+                </Button>
+              </Link>
               {isBuyer && (
                 <Link to="/rfqs/create">
                   <Button variant="ghost" className="flex items-center gap-2 bg-blue-400 rounded-full ">

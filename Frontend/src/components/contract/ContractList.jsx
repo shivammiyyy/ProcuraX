@@ -13,21 +13,26 @@ const ContractList = () => {
     const fetchContracts = async () => {
       try {
         const response = await getContracts();
+        const allContracts = response.data?.contracts || [];
+
         // Filter contracts: buyers see their own, vendors see contracts where they are the vendor
-        const filteredContracts = response.contracts.filter((contract) => {
+        const filteredContracts = allContracts.filter((contract) => {
+          if (!contract || !contract.buyer || !contract.vendor) return false;
           return (
-            (user.role === 'buyer' && contract.buyerId === user._id) ||
-            (user.role === 'vendor' && contract.vendorId === user._id)
+            (user.role === 'buyer' && contract.buyer._id === user._id) ||
+            (user.role === 'vendor' && contract.vendor._id === user._id)
           );
         });
-        setContracts(filteredContracts || []);
+
+        setContracts(filteredContracts);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load contracts');
       } finally {
         setLoading(false);
       }
     };
-    fetchContracts();
+
+    if (user?._id) fetchContracts();
   }, [user]);
 
   if (loading) return <p>Loading contracts...</p>;
@@ -44,7 +49,9 @@ const ContractList = () => {
             className="bg-white p-4 rounded shadow flex justify-between items-center"
           >
             <div>
-              <h2 className="text-xl font-semibold">{contract.rfq?.title || 'Untitled Contract'}</h2>
+              <h2 className="text-xl font-semibold">
+                {contract.rfq?.title || 'Untitled Contract'}
+              </h2>
               <p className="text-gray-600">
                 {contract.rfq?.description?.substring(0, 100) || 'No description'}
               </p>

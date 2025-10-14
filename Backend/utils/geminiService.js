@@ -73,7 +73,7 @@ export const auditContractWithGemini = async (contractContent) => {
     let text = response.text;
     
     // Log raw response for debugging
-    console.log('Raw Gemini Response:', text);
+    // console.log('Raw Gemini Response:', text);
     
     // Clean the response text
     // Remove markdown code blocks
