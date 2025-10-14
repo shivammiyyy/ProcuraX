@@ -46,7 +46,7 @@ const Navbar = () => {
               </Link>
               {isBuyer && (
                 <Link to="/rfqs/create">
-                  <Button variant="ghost" className="flex items-center gap-2">
+                  <Button variant="ghost" className="flex items-center gap-2 bg-blue-400 rounded-full ">
                     <Plus className="h-4 w-4" />
                     Create RFQ
                   </Button>

@@ -12,7 +12,6 @@ const contractSchema = new mongoose.Schema(
             fileName: { type: String, required: true },
             filePath: { type: String, required: true },
         },
-        required: true,
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

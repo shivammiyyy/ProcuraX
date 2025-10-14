@@ -1,14 +1,27 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+
+// Dashboard
 import DashboardPage from './pages/dashboard/DashboardPage';
+
+// RFQ Pages
 import RfqListPage from './pages/rfqs/RfqListPage';
 import RfqCreatePage from './pages/rfqs/RfqCreatePage';
 import RfqDetailsPage from './pages/rfqs/RfqDetailsPage';
+
+// Quotation Pages
 import QuotationListPage from './pages/Quotations/QuotationListPage';
 import QuotationCreatePage from './pages/Quotations/QuotationCreatePage';
 import QuotationDetailsPage from './pages/Quotations/QuotationDetailsPage';
+
+// Contract Pages
+import ContractCreatePage from './pages/contract/ContractCreatePage'; // ✅ new route
+
+// Auth Protection
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
@@ -16,9 +29,11 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
 
+          {/* Protected Routes */}
           <Route
             path="/"
             element={
@@ -35,6 +50,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* RFQs */}
           <Route
             path="/rfqs"
             element={
@@ -59,6 +76,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Quotations */}
           <Route
             path="/quotations"
             element={
@@ -84,6 +103,17 @@ function App() {
             }
           />
 
+          {/* ✅ New Contract Route */}
+          <Route
+            path="/contracts/create/:quotationId"
+            element={
+              <ProtectedRoute>
+                <ContractCreatePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

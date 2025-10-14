@@ -10,7 +10,16 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+// Configure model with generation parameters
+// Use the correct model name format
+const model = genAI.getGenerativeModel({ 
+  model: 'models/gemini-1.5-flash',
+  generationConfig: {
+    temperature: 0,
+    maxOutputTokens: 500,
+  }
+});
 
 /**
  * Conducts an LLM-based audit of a contract document content.
@@ -56,11 +65,16 @@ export const auditContractWithGemini = async (contractContent) => {
   `;
 
   try {
+    // Pass the prompt as a string directly
     const result = await model.generateContent(prompt);
+    
+    // Extract the text from the response
     const response = await result.response;
     const text = response.text();
-
-    let jsonString = text.replace(/``````/g, '').trim();
+    
+    // Remove markdown code blocks if present
+    const jsonString = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
     const auditResult = JSON.parse(jsonString);
 
     if (!auditResult.auditReport || !Array.isArray(auditResult.auditWarnings) || !auditResult.auditStatus) {

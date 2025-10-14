@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
+import { createQuotation } from '../../api/quotationApi';
 
 const QuotationForm = ({ rfqId }) => {
-  const { user, loading } = useAuth();
-
   const [formData, setFormData] = useState({
     price: '',
     deliveryTimeDays: '',
@@ -14,25 +11,28 @@ const QuotationForm = ({ rfqId }) => {
       Environmental_Standards: false,
       Document_Submission: false,
     },
-    file: null,
   });
 
+  const [attachments, setAttachments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Handle text input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle file upload (multiple files)
   const handleFileChange = (e) => {
-    setFormData(prev => ({ ...prev, file: e.target.files[0] }));
+    setAttachments(Array.from(e.target.files));
   };
 
+  // Handle compliance checkbox and dropdown changes
   const handleComplianceChange = (e) => {
     const { name, type, checked, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       compliance: {
         ...prev.compliance,
@@ -41,14 +41,15 @@ const QuotationForm = ({ rfqId }) => {
     }));
   };
 
+  // Form submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!formData.file) {
-      setErrorMsg('Please upload a file.');
+    if (attachments.length === 0) {
+      setErrorMsg('Please upload at least one attachment.');
       setSubmitting(false);
       return;
     }
@@ -59,14 +60,10 @@ const QuotationForm = ({ rfqId }) => {
       data.append('price', formData.price);
       data.append('deliveryTimeDays', formData.deliveryTimeDays);
       data.append('compliance', JSON.stringify(formData.compliance));
-      data.append('file', formData.file);
 
-      const res = await axios.post('/api/v0/quotation', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${user?.token}`,
-        },
-      });
+      attachments.forEach((file) => data.append('attachments', file));
+
+      const res = await createQuotation(data);
 
       setSuccessMsg(res.data.message || 'Quotation created successfully!');
       setFormData({
@@ -78,8 +75,8 @@ const QuotationForm = ({ rfqId }) => {
           Environmental_Standards: false,
           Document_Submission: false,
         },
-        file: null,
       });
+      setAttachments([]);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Failed to create quotation.');
     } finally {
@@ -98,6 +95,7 @@ const QuotationForm = ({ rfqId }) => {
       {errorMsg && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{errorMsg}</div>}
       {successMsg && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{successMsg}</div>}
 
+      {/* Price */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Price</label>
         <input
@@ -107,9 +105,11 @@ const QuotationForm = ({ rfqId }) => {
           onChange={handleChange}
           required
           className="w-full border rounded px-3 py-2"
+          placeholder="Enter quoted price"
         />
       </div>
 
+      {/* Delivery Time */}
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Delivery Time (Days)</label>
         <input
@@ -119,9 +119,11 @@ const QuotationForm = ({ rfqId }) => {
           onChange={handleChange}
           required
           className="w-full border rounded px-3 py-2"
+          placeholder="Enter delivery duration"
         />
       </div>
 
+      {/* Compliance Section */}
       <h3 className="text-lg font-semibold mb-2">Compliance Details</h3>
 
       <div className="mb-2">
@@ -174,14 +176,15 @@ const QuotationForm = ({ rfqId }) => {
         </label>
       </div>
 
+      {/* File Upload */}
       <div className="mb-6">
-        <label className="block mb-1 font-semibold">Upload File</label>
+        <label className="block mb-1 font-semibold">Upload Attachments</label>
         <input
           type="file"
-          name="file"
-          accept=".pdf,.doc,.docx"
+          name="attachments"
+          accept=".pdf,.doc,.docx,.zip,.xlsx"
           onChange={handleFileChange}
-          required
+          multiple
           className="w-full border rounded px-3 py-2"
         />
       </div>

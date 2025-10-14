@@ -11,7 +11,7 @@ export const createContract = async (req, res) => {
     ? { fileName: req.file.originalname, filePath: req.file.path }
     : null;
 
-  if (!rfqId || !vendorId || !buyerId || !quotationId || !content || !startDate || !endDate || !contractFile) {
+  if (!rfqId || !vendorId || !buyerId || !quotationId || !content || !startDate || !endDate ) {
     return res.status(400).json({ message: 'Please enter all required fields for the contract.' });
   }
 
