@@ -1,5 +1,5 @@
 import User from '../models/userModel.js';
-import Rfq from '../models/RfqModel.js';
+import Rfq from '../models/rfqModel.js';
 import { sendEmail } from '../utils/mailer.js';
 import Quotation from '../models/quotationModel.js';
 
