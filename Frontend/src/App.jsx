@@ -15,9 +15,9 @@ import RfqCreatePage from './pages/rfqs/RfqCreatePage';
 import RfqDetailsPage from './pages/rfqs/RfqDetailsPage';
 
 // Quotation Pages
-import QuotationListPage from './pages/quotations/QuotationListPage';
-import QuotationCreatePage from './pages/quotations/QuotationCreatePage';
-import QuotationDetailsPage from './pages/quotations/QuotationDetailsPage';
+import QuotationListPage from './pages/Quotations/QuotationListPage';
+import QuotationCreatePage from './pages/Quotations/QuotationCreatePage';
+import QuotationDetailsPage from './pages/Quotations/QuotationDetailsPage';
 
 // Contract Pages
 import ContractCreatePage from './pages/contract/ContractCreatePage';
