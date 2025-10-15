@@ -18,6 +18,6 @@ router.route('/')
 
 router.route('/:id')
   .get(protect, getContractById)
-  .put(protect, authorizeRoles('buyer', 'admin'), updateContract);
+  .put(protect, updateContract);
 
 export default router;

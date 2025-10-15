@@ -46,7 +46,7 @@ const ContractList = () => {
         contracts.map((contract) => (
           <div
             key={contract._id}
-            className="bg-white p-4 rounded shadow flex justify-between items-center"
+            className="bg-white border p-4 rounded shadow flex justify-between items-center"
           >
             <div>
               <h2 className="text-xl font-semibold">

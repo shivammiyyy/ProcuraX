@@ -112,6 +112,12 @@ const Navbar = () => {
                 RFQs
               </Button>
             </Link>
+            <Link to="/contracts" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start gap-2">
+                <FileText className="h-4 w-4" />
+                Contract
+              </Button>
+            </Link>
             {isBuyer && (
               <Link to="/rfqs/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">

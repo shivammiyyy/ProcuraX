@@ -24,7 +24,7 @@ const quotationSchema = new mongoose.Schema(
             filePath: String,
         }
     ],
-    status: { type: String, enum: ['submitted', 'under_review', 'accepted', 'rejected'], default: 'submitted' },
+    status: { type: String, enum: ['submitted', 'under_review','Contract_created', 'accepted', 'rejected'], default: 'submitted' },
   },
   {
     timestamps: true,

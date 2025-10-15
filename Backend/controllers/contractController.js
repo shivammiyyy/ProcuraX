@@ -1,4 +1,5 @@
 import Contract from "../models/contractModel.js";
+import Quotation from "../models/quotationModel.js";
 import User from "../models/userModel.js";
 import { auditContractWithGemini } from "../utils/geminiService.js";
 import { sendEmail } from "../utils/mailer.js";
@@ -9,17 +10,29 @@ import { sendEmail } from "../utils/mailer.js";
 export const createContract = async (req, res) => {
   const { rfqId, vendorId, buyerId, quotationId, content, startDate, endDate } = req.body;
 
-  const contractFile = req.file
-    ? { fileName: req.file.originalname, filePath: req.file.path }
-    : null;
-
   if (!rfqId || !vendorId || !buyerId || !quotationId || !content || !startDate || !endDate) {
     return res.status(400).json({ message: 'Please enter all required fields for the contract.' });
   }
 
+  const contractFile = req.file
+    ? { fileName: req.file.originalname, filePath: req.file.path }
+    : null;
+
   try {
+    // Fetch quotation
+    const quotation = await Quotation.findById(quotationId);
+    if (!quotation) {
+      return res.status(404).json({ message: 'Quotation not found.' });
+    }
+
+    // Update quotation status
+    quotation.status = "Contract_created";
+    await quotation.save();
+
+    // Audit the contract
     const geminiAudit = await auditContractWithGemini(content);
 
+    // Create contract
     const newContract = new Contract({
       rfq: rfqId,
       vendor: vendorId,
@@ -34,7 +47,6 @@ export const createContract = async (req, res) => {
       auditWarnings: geminiAudit.auditWarnings,
     });
 
-    // Save the contract first
     await newContract.save();
 
     // Fetch buyer and vendor details
@@ -42,18 +54,18 @@ export const createContract = async (req, res) => {
     const vendor = await User.findById(vendorId);
 
     // Send emails
-    if (vendor && vendor.email) {
+    if (vendor?.email) {
       await sendEmail(
         vendor.email,
         'Contract Created',
-        `A new contract has been created by the Buyer. Details:\n\n${JSON.stringify(newContract, null, 2)}`
+        `A new contract has been created by the Buyer.\n\nContract ID: ${newContract._id}\nContent: ${content}`
       );
     }
-    if (buyer && buyer.email) {
+    if (buyer?.email) {
       await sendEmail(
         buyer.email,
         'Contract Created',
-        `Your contract has been successfully created. Details:\n\n${JSON.stringify(newContract, null, 2)}`
+        `Your contract has been successfully created.\n\nContract ID: ${newContract._id}\nContent: ${content}`
       );
     }
 
@@ -132,16 +144,34 @@ export const updateContract = async (req, res) => {
       return res.status(404).json({ message: 'Contract not found' });
     }
 
-    if (req.user.role === 'buyer' && contract.buyer.toString() !== req.user._id.toString()) {
+    // Buyer can update their own contract
+    if (req.user.role === 'buyer') {
+      if (contract.buyer.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this contract.' });
+      }
+      contract.startDate = startDate || contract.startDate;
+      contract.endDate = endDate || contract.endDate;
+      contract.status = status || contract.status;
+    } 
+    // Vendor can only update status for their contract
+    else if (req.user.role === 'vendor') {
+      if (contract.vendor.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this contract.' });
+      }
+      if (!status) {
+        return res.status(400).json({ message: 'Vendor must provide status to update.' });
+      }
+      contract.status = status;
+    } 
+    // Admin can update everything
+    else if (req.user.role === 'admin') {
+      contract.startDate = startDate || contract.startDate;
+      contract.endDate = endDate || contract.endDate;
+      contract.status = status || contract.status;
+    } 
+    else {
       return res.status(403).json({ message: 'Not authorized to update this contract.' });
     }
-    if (req.user.role !== 'buyer' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only buyers and administrators can update contracts.' });
-    }
-
-    contract.startDate = startDate || contract.startDate;
-    contract.endDate = endDate || contract.endDate;
-    contract.status = status || contract.status;
 
     const updatedContract = await contract.save();
     res.status(200).json({ message: 'Contract updated successfully', contract: updatedContract });

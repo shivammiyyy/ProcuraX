@@ -14,6 +14,7 @@ export default function RfqDetailsPage() {
     const fetchRfq = async () => {
       try {
         const response = await getRfqById(id);
+        console.log(response);
         setRfq(response?.data?.rfq || null);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load RFQ details');

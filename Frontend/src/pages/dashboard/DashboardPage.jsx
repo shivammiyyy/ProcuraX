@@ -36,7 +36,7 @@ const DashboardPage = () => {
         } else if (isBuyer) {
           // Buyer sees quotations for their RFQs
           const myRfqIds = allRfqs.map(r => r._id);
-          setQuotations(allQuotations.filter(q => myRfqIds.includes(q.rfq._id)));
+          setQuotations(allQuotations.filter(q => myRfqIds.includes(q.rfq?._id)));
         }
       } catch (err) {
         console.error(err);
@@ -85,7 +85,7 @@ const DashboardPage = () => {
             <p className="text-gray-600 mt-2">
               {isBuyer
                 ? 'Manage your RFQs and review quotations from vendors.'
-                : 'Browse open RFQs and manage your quotations.'}
+                : 'Browse open RFQs/RFPs and manage your submitted quotations.'}
             </p>
           </div>
 
@@ -181,7 +181,7 @@ const DashboardPage = () => {
                 )}
               </div>
 
-              {/* Quotations */}
+              {/* Buyer Quotations */}
               <div className="mt-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Received Quotations</h2>
                 {quotations.length === 0 ? (
@@ -221,8 +221,106 @@ const DashboardPage = () => {
           {/* Vendor Dashboard */}
           {isVendor && (
             <>
-              {/* Vendor stats and RFQ/Quotation list */}
-              {/* Keep your existing vendor cards and mapping logic as is */}
+              {/* Available RFQs/RFPs */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Available RFQs/RFPs</h2>
+                {rfqs.filter(r => r.status === "open").length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No open RFQs/RFPs available currently.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  rfqs.filter(r => r.status === "open").map(rfq => (
+                    <Card key={rfq._id} className="hover:shadow-md transition-shadow mb-4">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{rfq.title}</CardTitle>
+                            <CardDescription className="mt-1">{rfq.description?.substring(0, 100)}...</CardDescription>
+                          </div>
+                          <Badge className={getStatusColor(rfq.status)}>{rfq.status}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                          <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Budget: ₹{rfq.budget?.toLocaleString()}</div>
+                          <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Deadline: {new Date(rfq.deadline).toLocaleDateString()}</div>
+                          <div className="flex items-center"><Package className="h-4 w-4 mr-1" /> {rfq.category}</div>
+                        </div>
+                        <Link to={`/rfqs/${rfq._id}`}>
+                          <Button variant="outline">View Details & Submit Quotation</Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Vendor's Submitted Quotations */}
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Submitted Quotations</h2>
+                {quotations.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <p className="text-gray-600">You haven't submitted any quotations yet.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  quotations.map(q => (
+                    <Card key={q._id} className="hover:shadow-md transition-shadow mb-4">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{q.rfq?.title}</CardTitle>
+                            <CardDescription className="mt-1">Buyer: {q.rfq?.Buyer?.companyName || q.rfq?.Buyer?.fullName}</CardDescription>
+                          </div>
+                          <Badge className={getStatusColor(q.status)}>{q.status}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                          <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Price: ₹{q.price?.toLocaleString()}</div>
+                          <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Delivery: {q.deliveryTimeDays} days</div>
+                        </div>
+
+                        {/* Quotation Attachments */}
+                        {q.attachments?.length > 0 && (
+                          <div className="mb-2">
+                            <p className="font-semibold text-sm mb-1">Attachments:</p>
+                            <ul className="list-disc ml-5 space-y-1">
+                              {q.attachments.map(file => (
+                                <li key={file._id}>
+                                  <a
+                                    href={file.filePath}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline mr-2"
+                                  >
+                                    {file.fileName}
+                                  </a>
+                                  <a
+                                    href={file.filePath}
+                                    download
+                                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded"
+                                  >
+                                    Download
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <Link to={`/quotations/${q._id}`}>
+                          <Button variant="outline">View Details</Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             </>
           )}
         </div>

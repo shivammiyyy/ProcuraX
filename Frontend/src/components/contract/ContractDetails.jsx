@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getContractById } from '../../api/contractApi';
+import { getContractById, updateContract } from '../../api/contractApi';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/button';
 
 const ContractDetails = () => {
   const { id } = useParams();
@@ -9,6 +10,7 @@ const ContractDetails = () => {
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -29,16 +31,29 @@ const ContractDetails = () => {
   if (!contract) return <p>No contract found.</p>;
 
   // Restrict access to buyer or vendor involved in the contract
-  const isAuthorized =
-    (user.role === 'buyer' && contract.buyer._id === user._id) ||
-    (user.role === 'vendor' && contract.vendor._id === user._id);
+  const isBuyer = user.role === 'buyer' && contract.buyer._id === user._id;
+  const isVendor = user.role === 'vendor' && contract.vendor._id === user._id;
 
-  if (!isAuthorized) {
+  if (!isBuyer && !isVendor) {
     return <p className="text-red-600">You are not authorized to view this contract.</p>;
   }
 
   // Helper function to format dates
-  const formatDate = (dateStr) => dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+  const formatDate = (dateStr) => (dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A');
+
+  // Handle vendor action
+  const handleVendorAction = async (newStatus) => {
+    setUpdating(true);
+    try {
+      const updatedContract = await updateContract(contract._id, { status: newStatus });
+      setContract(updatedContract.data.contract); // Update local state
+    } catch (err) {
+      console.error('Failed to update contract:', err);
+      alert(err.response?.data?.message || 'Failed to update contract');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <div className="bg-white p-8 rounded shadow-md max-w-4xl mx-auto space-y-6">
@@ -129,6 +144,26 @@ const ContractDetails = () => {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Vendor Actions */}
+      {isVendor && contract.status === 'Active' && (
+        <div className="mt-6 flex gap-4">
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            disabled={updating}
+            onClick={() => handleVendorAction('Audited')}
+          >
+            Accept
+          </Button>
+          <Button
+            className="bg-red-600 hover:bg-red-700"
+            disabled={updating}
+            onClick={() => handleVendorAction('cancelled')}
+          >
+            Cancel
+          </Button>
         </div>
       )}
     </div>

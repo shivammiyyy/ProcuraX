@@ -19,7 +19,7 @@ const QuotationList = ({ quotations }) => {
         filteredQuotations.map((quotation) => (
           <div
             key={quotation._id}
-            className="bg-white p-4 rounded shadow flex justify-between items-center"
+            className="bg-white p-4 border rounded shadow flex justify-between items-center"
           >
             <div>
               <h2 className="text-lg font-semibold">{quotation.rfq?.title || 'RFQ'}</h2>

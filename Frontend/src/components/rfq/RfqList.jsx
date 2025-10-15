@@ -13,7 +13,7 @@ const RfqList = ({ rfqs }) => {
         rfqs.map((rfq) => (
           <div
             key={rfq._id}
-            className="bg-white p-4 rounded shadow flex justify-between items-start"
+            className="bg-white border p-4 rounded shadow flex justify-between items-start"
           >
             <div className="flex-1 pr-4">
               <h2 className="text-xl font-semibold mb-1">{rfq.title || 'Untitled RFQ'}</h2>
