@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { ChevronDown, Menu, X, FileText, Home, Plus } from 'lucide-react';
+import { ChevronDown, Menu, X, FileText, Home, Plus, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -23,73 +23,75 @@ const Navbar = () => {
   const isBuyer = user?.role === 'buyer';
 
   return (
-    <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
+    <nav className="bg-gradient-to-r from-blue-600 to-blue-500 shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-8">
-            <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">ProcuraX</span>
-            </Link>
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-2xl font-extrabold text-white tracking-tight">ProcuraX</span>
+          </Link>
 
-            <div className="hidden md:flex items-center space-x-1">
-              <Link to="/">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Home
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Link to="/">
+              <Button variant="ghost" className="text-white hover:bg-white/10 flex items-center gap-2">
+                <Home className="h-4 w-4" /> Home
+              </Button>
+            </Link>
+            <Link to="/rfqs">
+              <Button variant="ghost" className="text-white hover:bg-white/10 flex items-center gap-2">
+                <FileText className="h-4 w-4" /> RFQs
+              </Button>
+            </Link>
+            <Link to="/contracts">
+              <Button variant="ghost" className="text-white hover:bg-white/10 flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" /> Contracts
+              </Button>
+            </Link>
+            {isBuyer && (
+              <Link to="/rfqs/create">
+                <Button className="bg-white text-blue-600 hover:bg-blue-50 flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Create RFQ
                 </Button>
               </Link>
-              <Link to="/rfqs">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  RFQs
-                </Button>
-              </Link>
-              <Link to="/contracts">
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Contracts
-                </Button>
-              </Link>
-              {isBuyer && (
-                <Link to="/rfqs/create">
-                  <Button variant="ghost" className="flex items-center gap-2 bg-blue-400 rounded-full ">
-                    <Plus className="h-4 w-4" />
-                    Create RFQ
-                  </Button>
-                </Link>
-              )}
-            </div>
+            )}
           </div>
 
+          {/* Profile Dropdown */}
           <div className="hidden md:flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
+                <Button variant="ghost" className="flex items-center gap-2 text-white hover:bg-white/10">
+                  <div className="w-8 h-8 rounded-full bg-white text-blue-600 flex items-center justify-center font-semibold">
                     {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <span className="font-medium">{user?.fullName?.split(' ')[0]}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="flex flex-col items-start">
-                  <div className="font-medium">{user?.fullName}</div>
+              <DropdownMenuContent align="end" className="w-56 shadow-md">
+                <DropdownMenuItem className="flex flex-col items-start pb-2 border-b">
+                  <div className="font-semibold text-gray-800">{user?.fullName}</div>
                   <div className="text-xs text-gray-500">{user?.email}</div>
                   <div className="text-xs text-blue-600 mt-1 capitalize">{user?.role}</div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600 cursor-pointer hover:bg-red-50"
+                >
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
+          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-white hover:bg-white/10"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
@@ -97,32 +99,29 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Mobile Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-white">
+        <div className="md:hidden bg-white border-t shadow-inner">
           <div className="px-4 py-3 space-y-2">
             <Link to="/" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className="w-full justify-start gap-2">
-                <Home className="h-4 w-4" />
-                Home
+                <Home className="h-4 w-4" /> Home
               </Button>
             </Link>
             <Link to="/rfqs" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className="w-full justify-start gap-2">
-                <FileText className="h-4 w-4" />
-                RFQs
+                <FileText className="h-4 w-4" /> RFQs
               </Button>
             </Link>
             <Link to="/contracts" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className="w-full justify-start gap-2">
-                <FileText className="h-4 w-4" />
-                Contract
+                <ClipboardList className="h-4 w-4" /> Contracts
               </Button>
             </Link>
             {isBuyer && (
               <Link to="/rfqs/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create RFQ
+                  <Plus className="h-4 w-4" /> Create RFQ
                 </Button>
               </Link>
             )}

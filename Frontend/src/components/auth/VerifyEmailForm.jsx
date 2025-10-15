@@ -88,7 +88,7 @@ const VerifyEmailForm = ({ email }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition flex items-center justify-center"
+        className="w-full bg-blue-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition flex items-center justify-center"
       >
         {loading ? (
           <>

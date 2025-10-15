@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
-import { createRfq } from '../../api/rfqApi';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { createRfq } from "../../api/rfqApi";
+import { useNavigate } from "react-router-dom";
 
 const RfqForm = () => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    requestType: 'RFQ',
-    budget: '',
-    deadline: '',
-    category: '',
+    title: "",
+    description: "",
+    requestType: "RFQ",
+    budget: "",
+    deadline: "",
+    category: "",
   });
-  const navigate = useNavigate();
-
   const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -28,144 +27,135 @@ const RfqForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
       const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
-      attachments.forEach((file) => data.append('attachment', file));
+      Object.entries(formData).forEach(([k, v]) => data.append(k, v));
+      attachments.forEach((file) => data.append("attachment", file));
 
-      const response = await createRfq(data);
-      setSuccess(response.data.message || 'RFQ created successfully!');
-      setFormData({
-        title: '',
-        description: '',
-        requestType: 'RFQ',
-        budget: '',
-        deadline: '',
-        category: '',
-      });
-      setAttachments([]);
-      navigate('/')
-
+      const res = await createRfq(data);
+      setSuccess(res.data.message || "RFQ created successfully!");
+      navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create RFQ. Please try again.');
+      setError(err.response?.data?.message || "Failed to create RFQ.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-full max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Create RFQ / RFP</h2>
-      {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-      {success && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{success}</div>}
-      <div className="mb-4">
-        <label htmlFor="title" className="block mb-1 font-semibold">Title</label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          className="w-full border rounded px-3 py-2"
-          value={formData.title}
-          onChange={handleChange}
+    <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl border border-slate-200 p-8 transition-all hover:shadow-xl">
+      <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">
+        Create <span className="text-indigo-600">RFQ / RFP</span>
+      </h2>
+
+      {error && <p className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</p>}
+      {success && <p className="bg-emerald-100 text-emerald-700 p-3 rounded mb-4">{success}</p>}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Title</label>
+          <input
+            name="title"
+            type="text"
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"
+            value={formData.title}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+          <textarea
+            name="description"
+            rows={4}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"
+            value={formData.description}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Request Type</label>
+            <select
+              name="requestType"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400"
+              value={formData.requestType}
+              onChange={handleChange}
+            >
+              <option value="RFQ">RFQ (Quotation)</option>
+              <option value="RFP">RFP (Proposal)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Category</label>
+            <select
+              name="category"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400"
+              value={formData.category}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Category</option>
+              <option value="Office Supplies">Office Supplies</option>
+              <option value="IT Hardware">IT Hardware</option>
+              <option value="Raw Materials">Raw Materials</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Budget (₹)</label>
+            <input
+              name="budget"
+              type="number"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400"
+              value={formData.budget}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Deadline</label>
+            <input
+              name="deadline"
+              type="date"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-400"
+              value={formData.deadline}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Attachments</label>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="w-full border rounded-lg px-3 py-2 text-sm text-slate-600"
+          />
+        </div>
+
+        <button
+          type="submit"
           disabled={loading}
-          required
-        />
-      </div>
-      <div className="mb-4">
-        <label htmlFor="description" className="block mb-1 font-semibold">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          className="w-full border rounded px-3 py-2"
-          rows={4}
-          value={formData.description}
-          onChange={handleChange}
-          disabled={loading}
-          required
-        />
-      </div>
-      <div className="mb-4">
-        <label htmlFor="requestType" className="block mb-1 font-semibold">Request Type</label>
-        <select
-          id="requestType"
-          name="requestType"
-          className="w-full border rounded px-3 py-2"
-          value={formData.requestType}
-          onChange={handleChange}
-          disabled={loading}
-          required
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-semibold transition-all"
         >
-          <option value="RFQ">RFQ (Request for Quotation)</option>
-          <option value="RFP">RFP (Request for Proposal)</option>
-        </select>
-      </div>
-      <div className="mb-4">
-        <label htmlFor="budget" className="block mb-1 font-semibold">Budget (₹)</label>
-        <input
-          id="budget"
-          name="budget"
-          type="number"
-          className="w-full border rounded px-3 py-2"
-          value={formData.budget}
-          onChange={handleChange}
-          disabled={loading}
-          required
-        />
-      </div>
-      <div className="mb-4">
-        <label htmlFor="category" className="block mb-1 font-semibold">Category</label>
-        <select
-          id="category"
-          name="category"
-          className="w-full border rounded px-3 py-2"
-          value={formData.category}
-          onChange={handleChange}
-          disabled={loading}
-          required
-        >
-          <option value="">Select a category</option>
-          <option value="Office Supplies">Office Supplies</option>
-          <option value="IT Hardware">IT Hardware</option>
-          <option value="Raw Materials">Raw Materials</option>
-        </select>
-      </div>
-      <div className="mb-4">
-        <label htmlFor="deadline" className="block mb-1 font-semibold">Deadline</label>
-        <input
-          id="deadline"
-          name="deadline"
-          type="date"
-          className="w-full border rounded px-3 py-2"
-          value={formData.deadline}
-          onChange={handleChange}
-          disabled={loading}
-          required
-        />
-      </div>
-      <div className="mb-6">
-        <label htmlFor="attachment" className="block mb-1 font-semibold">Attachments (optional)</label>
-        <input
-          id="attachment"
-          name="attachment"
-          type="file"
-          multiple
-          onChange={handleFileChange}
-          disabled={loading}
-          className="w-full border rounded px-3 py-2"
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded"
-      >
-        {loading ? 'Submitting...' : 'Submit RFQ'}
-      </button>
-    </form>
+          {loading ? "Submitting..." : "Submit RFQ"}
+        </button>
+      </form>
+    </div>
   );
 };
 

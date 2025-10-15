@@ -5,7 +5,7 @@ import Navbar from '../../components/common/Navbar';
 import { getRfqs } from '../../api/rfqApi';
 import { getQuotations } from '../../api/quotationApi';
 import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { FileText, Plus, DollarSign, Clock, TrendingUp, Package } from 'lucide-react';
 
@@ -31,10 +31,10 @@ const DashboardPage = () => {
         const allQuotations = quotResponse.data.quotations || [];
 
         if (isVendor) {
-          // Vendor sees only their quotations
+          // Vendor: only show their quotations
           setQuotations(allQuotations.filter(q => q.vendor?._id === user._id));
         } else if (isBuyer) {
-          // Buyer sees quotations for their RFQs
+          // Buyer: show quotations related to their RFQs
           const myRfqIds = allRfqs.map(r => r._id);
           setQuotations(allQuotations.filter(q => myRfqIds.includes(q.rfq?._id)));
         }
@@ -53,10 +53,7 @@ const DashboardPage = () => {
     switch (status) {
       case 'open': return 'bg-green-100 text-green-800';
       case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      case 'submitted': return 'bg-yellow-100 text-yellow-800';
-      case 'under_review': return 'bg-blue-100 text-blue-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'accepted': return 'bg-green-200 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -77,15 +74,15 @@ const DashboardPage = () => {
     <>
       <Navbar />
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="mb-10">
             <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {user?.fullName?.split(' ')[0]}!
+              Welcome back, {user?.fullName?.split(' ')[0]} 👋
             </h1>
             <p className="text-gray-600 mt-2">
               {isBuyer
-                ? 'Manage your RFQs and review quotations from vendors.'
-                : 'Browse open RFQs/RFPs and manage your submitted quotations.'}
+                ? 'Track your RFQs and manage vendor quotations seamlessly.'
+                : 'Browse RFQs and manage your submitted quotations.'}
             </p>
           </div>
 
@@ -95,230 +92,145 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* Buyer Dashboard */}
+          {/* ---------------- BUYER DASHBOARD ---------------- */}
           {isBuyer && (
             <>
-              {/* RFQ Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card>
-                  <CardHeader className="flex justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total RFQs</CardTitle>
-                    <FileText className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{rfqs.length}</div>
-                    <p className="text-xs text-gray-500 mt-1">Active requests for quotation</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Open RFQs</CardTitle>
-                    <Package className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{rfqs.filter(r => r.status === 'open').length}</div>
-                    <p className="text-xs text-gray-500 mt-1">Accepting quotations</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{rfqs.filter(r => r.status === 'in_progress').length}</div>
-                    <p className="text-xs text-gray-500 mt-1">Active contracts</p>
-                  </CardContent>
-                </Card>
+              {/* Stat Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                {[
+                  { title: 'Total RFQs', value: rfqs.length, icon: FileText },
+                  { title: 'Open RFQs', value: rfqs.filter(r => r.status === 'open').length, icon: Package },
+                  { title: 'In Progress', value: rfqs.filter(r => r.status === 'in_progress').length, icon: TrendingUp },
+                ].map((item, i) => (
+                  <Card key={i} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex justify-between items-center pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">{item.title}</CardTitle>
+                      <item.icon className="h-5 w-5 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-semibold text-gray-900">{item.value}</div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
-              {/* RFQ List */}
+              {/* RFQs Section */}
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Your RFQs</h2>
+                <h2 className="text-2xl font-semibold text-gray-900">Your RFQs</h2>
                 <Link to="/rfqs/create">
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" /> Create New RFQ
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" /> New RFQ
                   </Button>
                 </Link>
               </div>
 
-              <div className="space-y-4">
-                {rfqs.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">You haven't created any RFQs yet.</p>
-                      <Link to="/rfqs/create">
-                        <Button className="bg-blue-600 hover:bg-blue-700">Create Your First RFQ</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  rfqs
-                    .map(rfq => (
-                      <Card key={rfq._id} className="hover:shadow-md transition-shadow">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{rfq.title}</CardTitle>
-                              <CardDescription className="mt-1">{rfq.description?.substring(0, 100)}...</CardDescription>
-                            </div>
-                            <Badge className={getStatusColor(rfq.status)}>{rfq.status}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                            <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Budget: ₹{rfq.budget?.toLocaleString()}</div>
-                            <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Deadline: {new Date(rfq.deadline).toLocaleDateString()}</div>
-                            <div className="flex items-center"><Package className="h-4 w-4 mr-1" /> {rfq.category}</div>
-                          </div>
-                          <Link to={`/rfqs/${rfq._id}`}>
-                            <Button variant="outline">View Details & Quotations</Button>
-                          </Link>
-                        </CardContent>
-                      </Card>
-                    ))
-                )}
-              </div>
-
-              {/* Buyer Quotations */}
-              <div className="mt-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Received Quotations</h2>
-                {quotations.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <p className="text-gray-600">No quotations received yet.</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  quotations.map(q => (
-                    <Card key={q._id} className="hover:shadow-md transition-shadow mb-4">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">{q.rfq?.title}</CardTitle>
-                            <CardDescription className="mt-1">Vendor: {q.vendor?.companyName || q.vendor?.fullName}</CardDescription>
-                          </div>
-                          <Badge className={getStatusColor(q.status)}>{q.status}</Badge>
+              {rfqs.length === 0 ? (
+                <Card className="py-12 text-center">
+                  <FileText className="h-10 w-10 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No RFQs yet. Create your first one!</p>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {rfqs.map(rfq => (
+                    <Card key={rfq._id} className="hover:shadow-md transition-shadow border border-gray-100">
+                      <CardHeader className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-semibold">{rfq.title}</CardTitle>
+                          <CardDescription>{rfq.description?.slice(0, 100)}...</CardDescription>
                         </div>
+                        <Badge className={getStatusColor(rfq.status)}>{rfq.status}</Badge>
                       </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Price: ₹{q.price?.toLocaleString()}</div>
-                          <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Delivery: {q.deliveryTimeDays} days</div>
+                      <CardContent className="text-sm text-gray-600 flex flex-wrap gap-4">
+                        <div>₹{rfq.budget?.toLocaleString()}</div>
+                        <div><Clock className="inline h-4 w-4 mr-1" /> {new Date(rfq.deadline).toLocaleDateString()}</div>
+                        <div><Package className="inline h-4 w-4 mr-1" /> {rfq.category}</div>
+                        <div className="w-full mt-3">
+                          <Link to={`/rfqs/${rfq._id}`}>
+                            <Button variant="outline" size="sm">View Details</Button>
+                          </Link>
                         </div>
-                        <Link to={`/quotations/${q._id}`}>
-                          <Button variant="outline">View Details</Button>
-                        </Link>
                       </CardContent>
                     </Card>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
-          {/* Vendor Dashboard */}
+          {/* ---------------- VENDOR DASHBOARD ---------------- */}
           {isVendor && (
             <>
-              {/* Available RFQs/RFPs */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Available RFQs/RFPs</h2>
+              {/* Available RFQs */}
+              <div className="mb-10">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Available RFQs</h2>
                 {rfqs.filter(r => r.status === "open").length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No open RFQs/RFPs available currently.</p>
-                    </CardContent>
+                  <Card className="py-12 text-center">
+                    <p className="text-gray-600">No open RFQs available at the moment.</p>
                   </Card>
                 ) : (
                   rfqs.filter(r => r.status === "open").map(rfq => (
                     <Card key={rfq._id} className="hover:shadow-md transition-shadow mb-4">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">{rfq.title}</CardTitle>
-                            <CardDescription className="mt-1">{rfq.description?.substring(0, 100)}...</CardDescription>
-                          </div>
-                          <Badge className={getStatusColor(rfq.status)}>{rfq.status}</Badge>
+                      <CardHeader className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-semibold">{rfq.title}</CardTitle>
+                          <CardDescription>{rfq.description?.substring(0, 100)}...</CardDescription>
                         </div>
+                        <Badge className={getStatusColor(rfq.status)}>{rfq.status}</Badge>
                       </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Budget: ₹{rfq.budget?.toLocaleString()}</div>
-                          <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Deadline: {new Date(rfq.deadline).toLocaleDateString()}</div>
-                          <div className="flex items-center"><Package className="h-4 w-4 mr-1" /> {rfq.category}</div>
+                      <CardContent className="text-sm text-gray-600 flex flex-wrap gap-4">
+                        <div>₹{rfq.budget?.toLocaleString()}</div>
+                        <div><Clock className="inline h-4 w-4 mr-1" /> {new Date(rfq.deadline).toLocaleDateString()}</div>
+                        <div><Package className="inline h-4 w-4 mr-1" /> {rfq.category}</div>
+                        <div className="w-full mt-3">
+                          <Link to={`/rfqs/${rfq._id}`}>
+                            <Button variant="outline" size="sm">View Details</Button>
+                          </Link>
+                          <Link to={`/quotations/create/${rfq._id}`}>
+                            <Button variant="outline" size="sm" className="ml-2">Create Quotation</Button>
+                          </Link>
                         </div>
-                        <Link to={`/rfqs/${rfq._id}`}>
-                          <Button variant="outline">View Details & Submit Quotation</Button>
-                        </Link>
                       </CardContent>
                     </Card>
                   ))
                 )}
               </div>
 
-              {/* Vendor's Submitted Quotations */}
-              <div className="mt-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Submitted Quotations</h2>
+              {/* My Quotations */}
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">My Submitted Quotations</h2>
                 {quotations.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <p className="text-gray-600">You haven't submitted any quotations yet.</p>
-                    </CardContent>
+                  <Card className="py-12 text-center">
+                    <p className="text-gray-600">You haven’t submitted any quotations yet.</p>
                   </Card>
                 ) : (
-                  quotations.map(q => (
-                    <Card key={q._id} className="hover:shadow-md transition-shadow mb-4">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
+                  <div className="space-y-4">
+                    {quotations.map(q => (
+                      <Card key={q._id} className="hover:shadow-md transition-shadow border border-gray-100">
+                        <CardHeader className="flex justify-between items-start">
                           <div>
-                            <CardTitle className="text-lg">{q.rfq?.title}</CardTitle>
-                            <CardDescription className="mt-1">Buyer: {q.rfq?.Buyer?.companyName || q.rfq?.Buyer?.fullName}</CardDescription>
+                            <CardTitle className="text-lg font-semibold">
+                              {q.rfq?.title || 'RFQ Not Found'}
+                            </CardTitle>
+                            <CardDescription>
+                              {q.rfq?.description?.slice(0, 80)}...
+                            </CardDescription>
                           </div>
-                          <Badge className={getStatusColor(q.status)}>{q.status}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                          <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" /> Price: ₹{q.price?.toLocaleString()}</div>
-                          <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> Delivery: {q.deliveryTimeDays} days</div>
-                        </div>
-
-                        {/* Quotation Attachments */}
-                        {q.attachments?.length > 0 && (
-                          <div className="mb-2">
-                            <p className="font-semibold text-sm mb-1">Attachments:</p>
-                            <ul className="list-disc ml-5 space-y-1">
-                              {q.attachments.map(file => (
-                                <li key={file._id}>
-                                  <a
-                                    href={file.filePath}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline mr-2"
-                                  >
-                                    {file.fileName}
-                                  </a>
-                                  <a
-                                    href={file.filePath}
-                                    download
-                                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded"
-                                  >
-                                    Download
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
+                          <Badge className={getStatusColor(q.status)}>
+                            {q.status || 'pending'}
+                          </Badge>
+                        </CardHeader>
+                        <CardContent className="text-sm text-gray-600 flex flex-wrap gap-4">
+                          <div><DollarSign className="inline h-4 w-4 mr-1" /> {q.price ? `₹${q.price}` : 'N/A'}</div>
+                          <div><Clock className="inline h-4 w-4 mr-1" /> {new Date(q.createdAt).toLocaleDateString()}</div>
+                          <div className="w-full mt-3">
+                            <Link to={`/quotations/${q._id}`}>
+                              <Button variant="outline" size="sm">View Details</Button>
+                            </Link>
                           </div>
-                        )}
-
-                        <Link to={`/quotations/${q._id}`}>
-                          <Button variant="outline">View Details</Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ))
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </div>
             </>

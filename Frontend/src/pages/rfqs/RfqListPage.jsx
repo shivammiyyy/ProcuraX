@@ -22,15 +22,17 @@ export default function RfqListPage() {
     fetchRfqs();
   }, []);
 
+  
+
   return (
-    <>
+  <div className="min-h-screen bg-slate-50 ">
       <Navbar />
-      <div className="p-8">
+  <div className="max-w-6xl mx-auto mt-8">
         <h1 className="text-3xl font-bold mb-6">All RFQs</h1>
         {loading && <p>Loading RFQs...</p>}
         {error && <p className="text-red-600">{error}</p>}
         {!loading && !error && <RfqList rfqs={rfqs} />}
       </div>
-    </>
+    </div>
   );
 }

@@ -25,14 +25,16 @@ export default function RfqDetailsPage() {
     fetchRfq();
   }, [id]);
 
+
+  
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 ">
       <Navbar />
-      <div className="p-8">
+  <div className="max-w-6xl mx-auto mt-8">
         {loading && <p>Loading RFQ details...</p>}
         {error && <p className="text-red-600">{error}</p>}
         {!loading && !error && rfq && <RfqDetails rfq={rfq} />}
       </div>
-    </>
+    </div>
   );
 }

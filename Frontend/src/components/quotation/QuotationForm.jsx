@@ -1,191 +1,148 @@
-import React, { useState } from 'react';
-import { createQuotation } from '../../api/quotationApi';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { createQuotation } from "../../api/quotationApi";
+import { getRfqList } from "../../api/rfqApi";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FilePlus, Loader2 } from "lucide-react";
 
-const QuotationForm = ({ rfqId }) => {
-  const navigate = useNavigate();
+const QuotationForm = () => {
+  const { user } = useAuth();
+  const [rfqs, setRfqs] = useState([]);
   const [formData, setFormData] = useState({
-    price: '',
-    deliveryTimeDays: '',
-    compliance: {
-      ISO_Certification: false,
-      Material_Grade: 'A',
-      Environmental_Standards: false,
-      Document_Submission: false,
-    },
+    rfq: "",
+    price: "",
+    deliveryTimeDays: "",
+    attachments: [],
   });
-  const [attachments, setAttachments] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    const fetchRfqs = async () => {
+      const res = await getRfqList();
+      setRfqs(res.data);
+    };
+    fetchRfqs();
+  }, []);
 
-  const handleFileChange = (e) => {
-    setAttachments(Array.from(e.target.files));
-  };
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleComplianceChange = (e) => {
-    const { name, type, checked, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      compliance: {
-        ...prev.compliance,
-        [name]: type === 'checkbox' ? checked : value,
-      },
-    }));
-  };
+  const handleFileChange = (e) =>
+    setFormData({ ...formData, attachments: [...e.target.files] });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (attachments.length === 0) {
-      setErrorMsg('Please upload at least one attachment.');
-      setSubmitting(false);
-      return;
-    }
-
+    setLoading(true);
     try {
       const data = new FormData();
-      data.append('rfqId', rfqId);
-      data.append('price', formData.price);
-      data.append('deliveryTimeDays', formData.deliveryTimeDays);
-      data.append('compliance', JSON.stringify(formData.compliance));
-      attachments.forEach((file) => data.append('attachments', file));
+      data.append("rfq", formData.rfq);
+      data.append("price", formData.price);
+      data.append("deliveryTimeDays", formData.deliveryTimeDays);
+      formData.attachments.forEach((file) => data.append("attachments", file));
 
-      const res = await createQuotation(data);
-      setSuccessMsg(res.data.message || 'Quotation created successfully!');
-      setFormData({
-        price: '',
-        deliveryTimeDays: '',
-        compliance: {
-          ISO_Certification: false,
-          Material_Grade: 'A',
-          Environmental_Standards: false,
-          Document_Submission: false,
-        },
-      });
-      setAttachments([]);
-      navigate('/');
+      await createQuotation(data);
+      navigate("/quotations");
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Failed to create quotation.');
+      console.error(err);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white p-8 rounded shadow-md w-full max-w-lg"
-      encType="multipart/form-data"
-    >
-      <h2 className="text-2xl font-bold mb-6">Submit Quotation</h2>
-      {errorMsg && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{errorMsg}</div>}
-      {successMsg && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{successMsg}</div>}
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold">Price</label>
-        <input
-          type="number"
-          name="price"
-          value={formData.price}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2"
-          placeholder="Enter quoted price"
-          disabled={submitting}
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block mb-1 font-semibold">Delivery Time (Days)</label>
-        <input
-          type="number"
-          name="deliveryTimeDays"
-          value={formData.deliveryTimeDays}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2"
-          placeholder="Enter delivery duration"
-          disabled={submitting}
-        />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">Compliance Details</h3>
-      <div className="mb-2">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="ISO_Certification"
-            checked={formData.compliance.ISO_Certification}
-            onChange={handleComplianceChange}
-            disabled={submitting}
-          />
-          ISO Certification
-        </label>
-      </div>
-      <div className="mb-2">
-        <label className="block mb-1 font-semibold">Material Grade</label>
-        <select
-          name="Material_Grade"
-          value={formData.compliance.Material_Grade}
-          onChange={handleComplianceChange}
-          className="w-full border rounded px-3 py-2"
-          disabled={submitting}
-        >
-          <option value="A+">A+</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-        </select>
-      </div>
-      <div className="mb-2">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="Environmental_Standards"
-            checked={formData.compliance.Environmental_Standards}
-            onChange={handleComplianceChange}
-            disabled={submitting}
-          />
-          Environmental Standards
-        </label>
-      </div>
-      <div className="mb-4">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="Document_Submission"
-            checked={formData.compliance.Document_Submission}
-            onChange={handleComplianceChange}
-            disabled={submitting}
-          />
-          Document Submission
-        </label>
-      </div>
-      <div className="mb-6">
-        <label className="block mb-1 font-semibold">Upload Attachments</label>
-        <input
-          type="file"
-          name="attachments"
-          accept=".pdf,.doc,.docx,.zip,.xlsx"
-          onChange={handleFileChange}
-          multiple
-          className="w-full border rounded px-3 py-2"
-          disabled={submitting}
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded"
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex justify-center py-10">
+      <motion.form
+        onSubmit={handleSubmit}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-lg p-8 space-y-6"
       >
-        {submitting ? 'Submitting...' : 'Submit Quotation'}
-      </button>
-    </form>
+        <div className="flex items-center gap-2 mb-2">
+          <FilePlus className="text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-800">Create Quotation</h2>
+        </div>
+        <p className="text-gray-500 text-sm">
+          Submit a quotation for a Request for Quotation (RFQ) below.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select RFQ
+            </label>
+            <select
+              name="rfq"
+              value={formData.rfq}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Select RFQ --</option>
+              {rfqs.map((r) => (
+                <option key={r._id} value={r._id}>
+                  {r.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Price (₹)
+            </label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Delivery Time (Days)
+            </label>
+            <input
+              type="number"
+              name="deliveryTimeDays"
+              value={formData.deliveryTimeDays}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Attach Documents
+            </label>
+            <input
+              type="file"
+              name="attachments"
+              multiple
+              onChange={handleFileChange}
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 transition"
+        >
+          {loading ? (
+            <Loader2 className="animate-spin w-5 h-5" />
+          ) : (
+            "Submit Quotation"
+          )}
+        </button>
+      </motion.form>
+    </div>
   );
 };
 

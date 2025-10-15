@@ -15,37 +15,38 @@ const ContractCreatePage = () => {
   useEffect(() => {
     const fetchQuotation = async () => {
       try {
-        const response = await getQuotationById(quotationId);
-        if (response.data.quotation.status !== 'accepted') {
+        const res = await getQuotationById(quotationId);
+        if (res.data.quotation.status !== 'accepted')
           throw new Error('Quotation must be accepted to create a contract.');
-        }
-        if (user._id !== response.data.quotation.rfq?.Buyer) {
-          throw new Error('You are not authorized to create this contract.');
-        }
-        setQuotation(response.data.quotation);
+        setQuotation(res.data.quotation);
       } catch (err) {
-        setError(err.message || 'Failed to load quotation details.');
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
     fetchQuotation();
-  }, [quotationId, user]);
-
-  if (loading) return <p className="text-center mt-10">Loading quotation details...</p>;
-  if (error) return <p className="text-center text-red-600 mt-10">{error}</p>;
+  }, [quotationId]);
 
   return (
     <>
       <Navbar />
-      <div className="p-8 min-h-screen bg-gray-50">
-        <h1 className="text-3xl font-bold mb-6">Create Contract</h1>
-        <ContractForm
-          rfqId={quotation.rfq?._id}
-          vendorId={quotation.vendor?._id}
-          buyerId={user?._id}
-          quotationId={quotation._id}
-        />
+      <div className="min-h-screen bg-gray-50 py-10 px-6">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-800 mb-8">Create New Contract</h1>
+          {loading ? (
+            <p>Loading quotation...</p>
+          ) : error ? (
+            <p className="text-red-600">{error}</p>
+          ) : (
+            <ContractForm
+              rfqId={quotation.rfq?._id}
+              vendorId={quotation.vendor?._id}
+              buyerId={user?._id}
+              quotationId={quotation._id}
+            />
+          )}
+        </div>
       </div>
     </>
   );

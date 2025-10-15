@@ -6,9 +6,13 @@ const ContractListPage = () => {
   return (
     <>
       <Navbar />
-      <div className="p-8 min-h-screen bg-gray-50">
-        <h1 className="text-3xl font-bold mb-6">All Contracts</h1>
-        <ContractList />
+      <div className="min-h-screen bg-gray-50 py-10 px-6">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-800 mb-8">
+            Contracts Overview
+          </h1>
+          <ContractList />
+        </div>
       </div>
     </>
   );

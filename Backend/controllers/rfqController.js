@@ -147,7 +147,8 @@ export const getQuotationByRFQId = async (req, res) => {
 
     const quotations = await Quotation.find({ rfq: rfqId })  // ✅ fixed here
       .populate('vendor', 'fullName companyName email')
-      .select('price status deliveryTimeDays attachments createdAt');
+      .select('price status deliveryTimeDays attachments createdAt vendorScore')
+      .sort({ vendorScore: -1 }); 
 
     res.status(200).json({ quotations });
   } catch (error) {
