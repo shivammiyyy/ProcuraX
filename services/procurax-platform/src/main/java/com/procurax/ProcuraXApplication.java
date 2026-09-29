@@ -1,12 +1,12 @@
-package com.procurax.platform;
+package com.procurax;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ProcuraXPlatformApplication {
+public class ProcuraXApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ProcuraXPlatformApplication.class, args);
+        SpringApplication.run(ProcuraXApplication.class, args);
     }
 }
