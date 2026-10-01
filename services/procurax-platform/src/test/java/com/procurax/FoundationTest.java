@@ -1,6 +1,7 @@
 package com.procurax;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -22,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@ActiveProfiles("test")
 class FoundationTest {
 
     @Container
@@ -64,7 +67,7 @@ class FoundationTest {
     @Test
     void errorsUseStandardFormatAndEchoValidCorrelationId() throws Exception {
         String id = UUID.randomUUID().toString();
-        mvc.perform(get("/api/v1/does-not-exist").header("X-Correlation-ID", id))
+        mvc.perform(get("/api/v1/does-not-exist").header("X-Correlation-ID", id).with(user("tester")))
                 .andExpect(status().isNotFound())
                 .andExpect(header().string("X-Correlation-ID", id))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))

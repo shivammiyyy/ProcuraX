@@ -7,12 +7,14 @@ Legacy details: [LEGACY_ARCHITECTURE.md](LEGACY_ARCHITECTURE.md).
 **DONE**
 - Phase 1: repository analysis (`LEGACY_ARCHITECTURE.md`, this plan).
 - Spring Boot 3.5 / Java 21 skeleton and `docker-compose.yml` (postgres, redis, kafka, kafka-ui, backend), verified healthy.
+- Phases 2–3: package layout (`com.procurax`), standard error format, correlation-ID filter, `BaseEntity`; Flyway V1 (identity/orgs/RBAC seed), V2 (vendors, intents, RFQs, quotations, scores, contracts), V3 (outbox, processed events, audit). Verified by Testcontainers tests.
+- Phase 4: Spring Security OIDC login integration, Redis-backed sessions, CSRF, explicit CORS, rate limiting, permission authorities, organization context/switching, and security tests.
 
 **IN PROGRESS**
-- Phases 2–3: Spring Boot core foundation, PostgreSQL + Flyway schema.
+- Phase 5: organization/RBAC/tenant-isolation hardening as procurement services are added.
 
 **TODO**
-- Phases 4–23 (see table below).
+- Phases 6–23 (see table below).
 
 **BLOCKERS / NOTES**
 - Local JDK is 17; the Java 21 module builds through Docker (`docker compose build backend`).
@@ -73,8 +75,8 @@ Per domain: implement in Spring → point the frontend at `/api/v1` → test (co
 | 1 | Repository analysis | DONE |
 | 2 | Spring Boot foundation (packages, error format, correlation ID) | DONE |
 | 3 | PostgreSQL + Flyway core schema (POs, approvals, policy, payments, orders, agents tables arrive in their phases) | DONE |
-| 4 | Spring Security + OAuth2/OIDC (Google) | IN PROGRESS |
-| 5 | Organizations + RBAC + tenant isolation | TODO |
+| 4 | Spring Security + OAuth2/OIDC (Google) | DONE |
+| 5 | Organizations + RBAC + tenant isolation hardening | IN PROGRESS |
 | 6 | Vendor / RFQ / quotation migration | TODO |
 | 7–8 | Kafka infrastructure, transactional outbox, idempotent consumers, retry/DLQ | TODO |
 | 9 | Vert.x gateway | TODO |

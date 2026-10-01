@@ -54,6 +54,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION", "The resource was modified concurrently; retry");
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    ResponseEntity<ApiError> forbidden(org.springframework.security.access.AccessDeniedException ex) {
+        return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "You do not have permission to perform this action");
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiError> unexpected(Exception ex) {
         log.error("Unhandled error", ex);
