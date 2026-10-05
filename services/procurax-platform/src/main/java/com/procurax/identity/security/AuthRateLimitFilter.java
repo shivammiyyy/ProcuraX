@@ -1,10 +1,14 @@
 package com.procurax.identity.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.procurax.common.correlation.CorrelationIdFilter;
+import com.procurax.common.error.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,15 +39,20 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             """, Long.class);
 
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
     private final int limit;
     private final int windowSeconds;
+    private final boolean trustForwardedFor;
 
-    public AuthRateLimitFilter(StringRedisTemplate redisTemplate,
+    public AuthRateLimitFilter(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
                                 @Value("${procurax.security.rate-limit.auth.limit}") int limit,
-                                @Value("${procurax.security.rate-limit.auth.window-seconds}") int windowSeconds) {
+                                @Value("${procurax.security.rate-limit.auth.window-seconds}") int windowSeconds,
+                                @Value("${procurax.security.trust-forwarded-for:false}") boolean trustForwardedFor) {
         this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
         this.limit = limit;
         this.windowSeconds = windowSeconds;
+        this.trustForwardedFor = trustForwardedFor;
     }
 
     @Override
@@ -61,8 +70,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             if (count != null && count > limit) {
                 response.setStatus(429);
                 response.setContentType("application/json");
-                response.getWriter().write(
-                        "{\"status\":429,\"code\":\"RATE_LIMITED\",\"message\":\"Too many authentication attempts\"}");
+                objectMapper.writeValue(response.getWriter(), new ApiError(Instant.now(), 429, "RATE_LIMITED",
+                        "Too many authentication attempts", CorrelationIdFilter.current()));
                 return;
             }
         } catch (Exception ex) {
@@ -72,9 +81,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
+        if (trustForwardedFor) {
+            String forwardedFor = request.getHeader("X-Forwarded-For");
+            if (forwardedFor != null && !forwardedFor.isBlank()) {
+                return forwardedFor.split(",")[0].trim();
+            }
         }
         return request.getRemoteAddr();
     }

@@ -82,5 +82,42 @@ services:
       PORT: 8080
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+
+  gateway:
+    build:
+      context: ./gateway/vertx-gateway
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      GATEWAY_PORT: 8080
+      BACKEND_URL: http://backend:8080
+      GATEWAY_CONNECT_TIMEOUT_MS: ${GATEWAY_CONNECT_TIMEOUT_MS:-5000}
+      GATEWAY_RATE_LIMIT_REQUESTS: ${GATEWAY_RATE_LIMIT_REQUESTS:-120}
+      GATEWAY_RATE_LIMIT_WINDOW_MS: ${GATEWAY_RATE_LIMIT_WINDOW_MS:-60000}
+      GATEWAY_MAX_TRACKED_CLIENTS: ${GATEWAY_MAX_TRACKED_CLIENTS:-20000}
+    ports:
+      - "${GATEWAY_PORT:-8088}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ai-platform:
+    build:
+      context: ./ai-platform/fastapi
+    environment:
+      PROCURAX_AI_SPRING_API_BASE_URL: http://backend:8080
+      PROCURAX_AI_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PROCURAX_AI_SERVICE_TOKEN: ${PROCURAX_AI_SERVICE_TOKEN:-}
+    ports:
+      - "127.0.0.1:${AI_PLATFORM_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://localhost:8000/health/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 volumes:
   postgres-data:

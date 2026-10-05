@@ -6,7 +6,9 @@ import com.procurax.identity.security.SecurityPrincipal;
 import com.procurax.identity.service.MembershipService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +35,11 @@ public class AuthController {
     public CurrentUserResponse me() {
         SecurityPrincipal principal = organizationContext.currentPrincipal();
         return CurrentUserResponse.from(principal, membershipService.membershipsFor(principal.getUserId()));
+    }
+
+    @GetMapping("/csrf")
+    public Map<String, String> csrf(CsrfToken csrfToken) {
+        return Map.of("token", csrfToken.getToken());
     }
 
     @PostMapping("/organizations/{organizationId}/switch")

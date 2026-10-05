@@ -3,6 +3,7 @@ package com.procurax.identity.security;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Map;
@@ -80,5 +81,13 @@ class SecurityAuthorizationTest {
         mvc.perform(get("/api/v1/organizations/current/admin-check").with(authentication(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.granted").value(true));
+    }
+
+    @Test
+    void authenticatedSessionCanBootstrapCookieCsrfToken() throws Exception {
+        mvc.perform(get("/api/v1/auth/csrf").with(authentication(principalWithPermissions("RFQ_READ"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(cookie().exists("XSRF-TOKEN"));
     }
 }

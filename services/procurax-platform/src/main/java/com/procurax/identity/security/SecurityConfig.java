@@ -1,7 +1,12 @@
 package com.procurax.identity.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.procurax.common.correlation.CorrelationIdFilter;
+import com.procurax.common.error.ApiError;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Instant;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +14,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -45,7 +51,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository contextRepository)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository contextRepository,
+                                                    ApiAuthenticationEntryPoint authenticationEntryPoint,
+                                                    ObjectProvider<ClientRegistrationRepository> registrations)
             throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,23 +68,26 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))
-                        .defaultSuccessUrl(frontendUrl, true))
                 .logout(logout -> logout.logoutSuccessUrl(frontendUrl))
-                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(apiAuthenticationEntryPoint()))
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint))
                 .headers(headers -> headers
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
                         .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true))
                         .referrerPolicy(referrer -> referrer.policy(
                                 org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)));
 
+        if (registrations.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService))
+                    .defaultSuccessUrl(frontendUrl, true));
+        }
+
         return http.build();
     }
 
     @Bean
-    public ApiAuthenticationEntryPoint apiAuthenticationEntryPoint() {
-        return new ApiAuthenticationEntryPoint();
+    public ApiAuthenticationEntryPoint apiAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        return new ApiAuthenticationEntryPoint(objectMapper);
     }
 
     @Bean
@@ -96,14 +107,20 @@ public class SecurityConfig {
     static class ApiAuthenticationEntryPoint
             implements org.springframework.security.web.AuthenticationEntryPoint {
 
+        private final ObjectMapper objectMapper;
+
+        ApiAuthenticationEntryPoint(ObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
+        }
+
         @Override
         public void commence(jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response,
                               org.springframework.security.core.AuthenticationException authException)
                 throws java.io.IOException {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
-            response.getWriter().write("""
-                    {"status":401,"code":"UNAUTHORIZED","message":"Authentication is required"}""");
+            objectMapper.writeValue(response.getWriter(), new ApiError(Instant.now(), 401, "UNAUTHORIZED",
+                    "Authentication is required", CorrelationIdFilter.current()));
         }
     }
 }
