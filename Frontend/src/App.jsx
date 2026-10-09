@@ -1,139 +1,52 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import { lazy, Suspense } from 'react';
+import { useParams } from 'react-router-dom';
 
-// Auth Pages
-import LoginPage from './pages/auth/LoginPage';
-import SignupPage from './pages/auth/SignupPage';
+const WorkspaceApp = lazy(() => import('./platform/WorkspaceApp'));
 
-// Dashboard
-import DashboardPage from './pages/dashboard/DashboardPage';
+function LegacyRfqRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/workspace/rfqs/${id}` : '/workspace/rfqs'} replace />;
+}
 
-// RFQ Pages
-import RfqListPage from './pages/rfqs/RfqListPage';
-import RfqCreatePage from './pages/rfqs/RfqCreatePage';
-import RfqDetailsPage from './pages/rfqs/RfqDetailsPage';
+function LegacyQuotationRedirect() {
+  const { id, rfqId } = useParams();
+  const destination = rfqId
+    ? `/workspace/quotations/new/${rfqId}`
+    : id
+      ? `/workspace/quotations/${id}`
+      : '/workspace/quotations';
+  return <Navigate to={destination} replace />;
+}
 
-// Quotation Pages
-import QuotationListPage from './pages/Quotations/QuotationListPage';
-import QuotationCreatePage from './pages/Quotations/QuotationCreatePage';
-import QuotationDetailsPage from './pages/Quotations/QuotationDetailsPage';
-
-// Contract Pages
-import ContractCreatePage from './pages/contract/ContractCreatePage';
-import ContractListPage from './pages/contract/ContractListPage';
-import ContractDetailsPage from './pages/contract/ContractDetailsPage';
+function LegacyContractRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/workspace/contracts/${id}` : '/workspace/contracts'} replace />;
+}
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <Suspense fallback={<div className="workspace-startup">Loading ProcuraX…</div>}>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* RFQs */}
-          <Route
-            path="/rfqs"
-            element={
-              <ProtectedRoute>
-                <RfqListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rfqs/create"
-            element={
-              <ProtectedRoute role="buyer">
-                <RfqCreatePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rfqs/:id"
-            element={
-              <ProtectedRoute>
-                <RfqDetailsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Quotations */}
-          <Route
-            path="/quotations"
-            element={
-              <ProtectedRoute>
-                <QuotationListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotations/create/:rfqId"
-            element={
-              <ProtectedRoute role="vendor">
-                <QuotationCreatePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotations/:id"
-            element={
-              <ProtectedRoute>
-                <QuotationDetailsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Contracts */}
-          <Route
-            path="/contracts"
-            element={
-              <ProtectedRoute>
-                <ContractListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/contracts/create/:quotationId"
-            element={
-              <ProtectedRoute role="buyer">
-                <ContractCreatePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/contracts/:id"
-            element={
-              <ProtectedRoute>
-                <ContractDetailsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<Navigate to="/workspace" replace />} />
+          <Route path="/login" element={<Navigate to="/workspace" replace />} />
+          <Route path="/signup" element={<Navigate to="/workspace" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/workspace" replace />} />
+          <Route path="/workspace/*" element={<WorkspaceApp />} />
+          <Route path="/rfqs" element={<LegacyRfqRedirect />} />
+          <Route path="/rfqs/create" element={<Navigate to="/workspace/rfqs" replace />} />
+          <Route path="/rfqs/:id" element={<LegacyRfqRedirect />} />
+          <Route path="/quotations" element={<LegacyQuotationRedirect />} />
+          <Route path="/quotations/create/:rfqId" element={<LegacyQuotationRedirect />} />
+          <Route path="/quotations/:id" element={<LegacyQuotationRedirect />} />
+          <Route path="/contracts" element={<LegacyContractRedirect />} />
+          <Route path="/contracts/create/:quotationId" element={<Navigate to="/workspace/contracts" replace />} />
+          <Route path="/contracts/:id" element={<LegacyContractRedirect />} />
+          <Route path="*" element={<Navigate to="/workspace" replace />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </Suspense>
+    </Router>
   );
 }
 
