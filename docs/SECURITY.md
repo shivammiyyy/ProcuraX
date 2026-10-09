@@ -2,7 +2,7 @@
 
 ## Current migration state
 
-The legacy `Backend/` API still uses email OTP, bcrypt and a bearer JWT. It remains available only while domains migrate. The new Spring Boot service uses server-side OAuth 2.0/OIDC sessions and does not reuse the legacy OTP/JWT model.
+The legacy Express API (email OTP, bcrypt, bearer JWT) has been removed. The Spring Boot service uses server-side OAuth 2.0/OIDC sessions and does not reuse the legacy OTP/JWT model.
 
 Google is the first configured identity provider. Provider credentials are read from `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` using the `oauth` Spring profile; no credentials are committed. Without that profile, the service starts for local infrastructure and testing but does not register an OAuth login endpoint. Additional providers can be added as Spring Security client registrations without changing the application user model.
 

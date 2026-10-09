@@ -70,6 +70,11 @@ procurax:
       cloud-name: ${CLOUDINARY_CLOUD_NAME:}
       api-key: ${CLOUDINARY_API_KEY:}
       api-secret: ${CLOUDINARY_API_SECRET:}
+  ai:
+    base-url: ${PROCURAX_AI_BASE_URL:http://localhost:8001}
+    service-token: ${PROCURAX_AI_SERVICE_TOKEN:}
+    embedding-model: ${PROCURAX_AI_OLLAMA_EMBEDDING_MODEL:qwen3-embedding:0.6b}
+    embedding-dimensions: ${PROCURAX_AI_OLLAMA_EMBEDDING_DIMENSIONS:1024}
   outbox:
     enabled: ${OUTBOX_ENABLED:true}
     poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:1000}

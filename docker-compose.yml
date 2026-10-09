@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: procurax
       POSTGRES_USER: procurax
@@ -79,9 +79,11 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-procurax-local}
       REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PROCURAX_AI_BASE_URL: http://ai-platform:8000
+      PROCURAX_AI_SERVICE_TOKEN: ${PROCURAX_AI_SERVICE_TOKEN:-}
       PORT: 8080
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
+    expose:
+      - "8080"
 
   gateway:
     build:
@@ -111,6 +113,11 @@ services:
       PROCURAX_AI_SPRING_API_BASE_URL: http://backend:8080
       PROCURAX_AI_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       PROCURAX_AI_SERVICE_TOKEN: ${PROCURAX_AI_SERVICE_TOKEN:-}
+      PROCURAX_AI_OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      PROCURAX_AI_OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen3:8b}
+      PROCURAX_AI_OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:${AI_PLATFORM_PORT:-8001}:8000"
     healthcheck:

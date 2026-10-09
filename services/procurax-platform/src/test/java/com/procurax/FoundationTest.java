@@ -3,10 +3,17 @@ package com.procurax;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.procurax.identity.domain.Organization;
+import com.procurax.identity.repository.OrganizationRepository;
+import com.procurax.identity.security.SecurityPrincipal;
+import com.procurax.outbox.OutboxReplayService;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.UUID;
 import com.procurax.outbox.ProcessedEventStore;
@@ -17,6 +24,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,7 +43,7 @@ class FoundationTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg17");
 
     @Autowired
     JdbcTemplate jdbc;
@@ -46,6 +56,12 @@ class FoundationTest {
 
     @Autowired
     OutboxEventWriter outboxEventWriter;
+
+    @Autowired
+    OutboxReplayService outboxReplayService;
+
+    @Autowired
+    OrganizationRepository organizationRepository;
 
     @Autowired
     PlatformTransactionManager transactionManager;
@@ -69,7 +85,109 @@ class FoundationTest {
         assertThat(permissionsOf("VENDOR")).containsExactlyInAnyOrder(
                 "RFQ_READ", "QUOTE_READ", "QUOTE_SUBMIT", "CONTRACT_READ", "VENDOR_DOCUMENT_SUBMIT");
         assertThat(permissionsOf("ORG_ADMIN")).contains("VENDOR_DOCUMENT_VERIFY");
+        assertThat(permissionsOf("PLATFORM_ADMIN")).contains("OUTBOX_REPLAY");
+        assertThat(permissionsOf("ORG_ADMIN")).doesNotContain("OUTBOX_REPLAY");
         assertThat(permissionsOf("VIEWER")).allMatch(p -> p.endsWith("_READ")).doesNotContain("AUDIT_READ");
+    }
+
+    @Test
+    void deadLetterReplayRequiresPlatformPermissionIsTenantScopedAuditedAndCapped() throws Exception {
+        Organization organization = organizationRepository.save(new Organization(
+                "Replay Org", "replay-" + UUID.randomUUID()));
+        UUID actorId = UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+        UUID aggregateId = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO outbox_events
+                    (id, organization_id, aggregate_type, aggregate_id, event_type, topic,
+                     correlation_id, payload, status, retry_count, dead_lettered_at)
+                VALUES (?, ?, 'TEST', ?, 'TEST_EVENT', 'procurax.test.v1',
+                        ?, '{}'::jsonb, 'DEAD_LETTERED', 8, now())
+                """, eventId, organization.getId(), aggregateId, UUID.randomUUID());
+
+        mvc.perform(post("/api/v1/operations/outbox/{eventId}/replay", eventId)
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.user("org-admin")
+                                .authorities(() -> "AUDIT_READ"))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Retry after confirming the broker recovered."}
+                                """))
+                .andExpect(status().isForbidden());
+
+        SecurityPrincipal principal = new SecurityPrincipal(actorId, "platform@example.test",
+                "Platform Operator", organization.getId(), organization.getName(), "PLATFORM_ADMIN",
+                Set.of("OUTBOX_REPLAY"), Map.of());
+        TestingAuthenticationToken authentication = new TestingAuthenticationToken(
+                principal, null, principal.getAuthorities());
+        try {
+            mvc.perform(post("/api/v1/operations/outbox/{eventId}/replay", eventId)
+                            .with(org.springframework.security.test.web.servlet.request
+                                    .SecurityMockMvcRequestPostProcessors.authentication(authentication))
+                            .with(org.springframework.security.test.web.servlet.request
+                                    .SecurityMockMvcRequestPostProcessors.csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"reason":"Retry after confirming the broker recovered."}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.eventId").value(eventId.toString()))
+                    .andExpect(jsonPath("$.status").value("PENDING"))
+                    .andExpect(jsonPath("$.replayCount").value(1));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        assertThat(jdbc.queryForObject("""
+                SELECT status || ':' || retry_count || ':' || replay_count
+                FROM outbox_events WHERE id = ?
+                """, String.class, eventId)).isEqualTo("PENDING:0:1");
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM audit_events
+                WHERE organization_id = ? AND resource_id = ?
+                  AND actor_id = ? AND action = 'OUTBOX_EVENT_REPLAY_REQUESTED'
+                  AND details->>'reason' = ?
+                """, Integer.class, organization.getId(), eventId.toString(), actorId.toString(),
+                "Retry after confirming the broker recovered.")).isEqualTo(1);
+
+        Organization foreignOrganization = organizationRepository.save(new Organization(
+                "Foreign Replay Org", "replay-foreign-" + UUID.randomUUID()));
+        UUID foreignEventId = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO outbox_events
+                    (id, organization_id, aggregate_type, aggregate_id, event_type, topic,
+                     correlation_id, payload, status, retry_count, dead_lettered_at)
+                VALUES (?, ?, 'TEST', ?, 'FOREIGN_EVENT', 'procurax.test.v1',
+                        ?, '{}'::jsonb, 'DEAD_LETTERED', 8, now())
+                """, foreignEventId, foreignOrganization.getId(), UUID.randomUUID(), UUID.randomUUID());
+        mvc.perform(post("/api/v1/operations/outbox/{eventId}/replay", foreignEventId)
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.authentication(authentication))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Attempt cross-tenant replay."}
+                                """))
+                .andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("SELECT status FROM outbox_events WHERE id = ?",
+                String.class, foreignEventId)).isEqualTo("DEAD_LETTERED");
+
+        jdbc.update("UPDATE outbox_events SET status = 'DEAD_LETTERED', dead_lettered_at = now(), replay_count = 3 WHERE id = ?",
+                eventId);
+        mvc.perform(post("/api/v1/operations/outbox/{eventId}/replay", eventId)
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.authentication(authentication))
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reason":"Limit replay for safety."}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("OUTBOX_REPLAY_LIMIT_REACHED"));
     }
 
     @Test

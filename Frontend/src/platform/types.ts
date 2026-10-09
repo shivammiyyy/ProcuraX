@@ -111,6 +111,63 @@ export interface ContractDecision {
   decidedAt: string;
 }
 
+export interface ContractAiReview {
+  id: string;
+  contractId: string;
+  requestedByUserId: string;
+  createdAt: string;
+  retrievalMethod: "ephemeral_bm25";
+  result: {
+    clauses: {
+      clause: string;
+      question: string;
+      evidence_status: "EVIDENCE_FOUND" | "NO_MATCHING_EVIDENCE";
+      citations: {
+        chunk_id: number;
+        start_character: number;
+        end_character: number;
+        relevance_score: number;
+        excerpt: string;
+      }[];
+      reviewer_note: string;
+    }[];
+    requires_human_review: true;
+    document_persisted: false;
+  };
+}
+
+export interface ContractAiAnalysis {
+  id: string;
+  contractId: string;
+  reviewId: string;
+  requestedByUserId: string;
+  createdAt: string;
+  model: string;
+  result: {
+    summaries: {
+      clause: string;
+      summary: string;
+      reviewer_questions: string[];
+      cited_chunk_ids: number[];
+    }[];
+    advisory_only: true;
+    requires_human_review: true;
+  };
+}
+
+export interface ContractSemanticSearch {
+  contractId: string;
+  embeddingModel: string;
+  matches: {
+    reviewId: string;
+    chunkId: number;
+    startCharacter: number;
+    endCharacter: number;
+    excerpt: string;
+    cosineSimilarity: number;
+  }[];
+}
+
 export interface PurchaseOrder extends BusinessRecord {
   poNumber: string;
   approvalRequestId: string;

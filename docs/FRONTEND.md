@@ -13,7 +13,7 @@ The frontend is being migrated incrementally. The existing JSX routes remain dur
 - Quotation details, vendor score explanations, and permission-gated quotation review/accept/reject; approval decisions with required rejection comments.
 - Vendor directory creation/editing, active organization member assignment, and compliance-document upload/verification controls, permission-gated by server-derived authorities.
 - Purchase-order list and immutable issued-order detail views with RFQ, quotation, and approval provenance.
-- Tenant-scoped contract list/create/detail views, authenticated PDF/DOCX upload and five-minute signed download links, attributed human review findings, and maker-checker approval/rejection decisions; drafts are based on accepted quotations. No public Cloudinary URL is returned or rendered.
+- Tenant-scoped contract list/create/detail views, authenticated PDF/DOCX upload and five-minute signed download links, attributed human review findings, persisted cited AI evidence retrieval, and maker-checker approval/rejection decisions; drafts are based on accepted quotations. No public Cloudinary URL is returned or rendered.
 - Sandbox payment mandate, authorization, capture and refund views. Browser input does not include payment credentials; idempotency keys are generated per operation.
 - Payment detail, sandbox lifecycle timestamps and receipts; shipment/invoice detail and reconciliation history; reconciliation run details with linked PO/invoice references.
 - Shipment and invoice metadata entry, delivery status transitions, and reconciliation findings using the fulfillment APIs.

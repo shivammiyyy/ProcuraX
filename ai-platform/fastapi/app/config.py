@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     spring_api_base_url: AnyHttpUrl = "http://backend:8080"
     kafka_bootstrap_servers: str = Field(default="kafka:29092", min_length=1)
     service_token: SecretStr | None = None
+    ollama_base_url: AnyHttpUrl = "http://host.docker.internal:11434"
+    ollama_chat_model: str = Field(default="qwen3:8b", min_length=1)
+    ollama_embedding_model: str = Field(default="qwen3-embedding:0.6b", min_length=1)
+    ollama_embedding_dimensions: int = Field(default=1024, ge=1, le=4096)
+    ollama_timeout_seconds: float = Field(default=120.0, gt=0, le=600)
 
     @field_validator("service_token", mode="before")
     @classmethod

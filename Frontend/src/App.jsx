@@ -1,46 +1,52 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import { lazy, Suspense } from 'react';
+import { useParams } from 'react-router-dom';
 
-const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
-const SignupPage = lazy(() => import('./pages/auth/SignupPage'));
-const RfqListPage = lazy(() => import('./pages/rfqs/RfqListPage'));
-const RfqCreatePage = lazy(() => import('./pages/rfqs/RfqCreatePage'));
-const RfqDetailsPage = lazy(() => import('./pages/rfqs/RfqDetailsPage'));
-const QuotationListPage = lazy(() => import('./pages/Quotations/QuotationListPage'));
-const QuotationCreatePage = lazy(() => import('./pages/Quotations/QuotationCreatePage'));
-const QuotationDetailsPage = lazy(() => import('./pages/Quotations/QuotationDetailsPage'));
-const ContractCreatePage = lazy(() => import('./pages/contract/ContractCreatePage'));
-const ContractListPage = lazy(() => import('./pages/contract/ContractListPage'));
-const ContractDetailsPage = lazy(() => import('./pages/contract/ContractDetailsPage'));
 const WorkspaceApp = lazy(() => import('./platform/WorkspaceApp'));
+
+function LegacyRfqRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/workspace/rfqs/${id}` : '/workspace/rfqs'} replace />;
+}
+
+function LegacyQuotationRedirect() {
+  const { id, rfqId } = useParams();
+  const destination = rfqId
+    ? `/workspace/quotations/new/${rfqId}`
+    : id
+      ? `/workspace/quotations/${id}`
+      : '/workspace/quotations';
+  return <Navigate to={destination} replace />;
+}
+
+function LegacyContractRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/workspace/contracts/${id}` : '/workspace/contracts'} replace />;
+}
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Suspense fallback={<div className="workspace-startup">Loading ProcuraX…</div>}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/" element={<Navigate to="/workspace" replace />} />
-            <Route path="/dashboard" element={<Navigate to="/workspace" replace />} />
-            <Route path="/workspace/*" element={<WorkspaceApp />} />
-            <Route path="/rfqs" element={<ProtectedRoute><RfqListPage /></ProtectedRoute>} />
-            <Route path="/rfqs/create" element={<ProtectedRoute role="buyer"><RfqCreatePage /></ProtectedRoute>} />
-            <Route path="/rfqs/:id" element={<ProtectedRoute><RfqDetailsPage /></ProtectedRoute>} />
-            <Route path="/quotations" element={<ProtectedRoute><QuotationListPage /></ProtectedRoute>} />
-            <Route path="/quotations/create/:rfqId" element={<ProtectedRoute role="vendor"><QuotationCreatePage /></ProtectedRoute>} />
-            <Route path="/quotations/:id" element={<ProtectedRoute><QuotationDetailsPage /></ProtectedRoute>} />
-            <Route path="/contracts" element={<ProtectedRoute><ContractListPage /></ProtectedRoute>} />
-            <Route path="/contracts/create/:quotationId" element={<ProtectedRoute role="buyer"><ContractCreatePage /></ProtectedRoute>} />
-            <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetailsPage /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </AuthProvider>
+    <Router>
+      <Suspense fallback={<div className="workspace-startup">Loading ProcuraX…</div>}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/workspace" replace />} />
+          <Route path="/login" element={<Navigate to="/workspace" replace />} />
+          <Route path="/signup" element={<Navigate to="/workspace" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/workspace" replace />} />
+          <Route path="/workspace/*" element={<WorkspaceApp />} />
+          <Route path="/rfqs" element={<LegacyRfqRedirect />} />
+          <Route path="/rfqs/create" element={<Navigate to="/workspace/rfqs" replace />} />
+          <Route path="/rfqs/:id" element={<LegacyRfqRedirect />} />
+          <Route path="/quotations" element={<LegacyQuotationRedirect />} />
+          <Route path="/quotations/create/:rfqId" element={<LegacyQuotationRedirect />} />
+          <Route path="/quotations/:id" element={<LegacyQuotationRedirect />} />
+          <Route path="/contracts" element={<LegacyContractRedirect />} />
+          <Route path="/contracts/create/:quotationId" element={<Navigate to="/workspace/contracts" replace />} />
+          <Route path="/contracts/:id" element={<LegacyContractRedirect />} />
+          <Route path="*" element={<Navigate to="/workspace" replace />} />
+        </Routes>
+      </Suspense>
+    </Router>
   );
 }
 

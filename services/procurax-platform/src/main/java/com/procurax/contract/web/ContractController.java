@@ -1,6 +1,9 @@
 package com.procurax.contract.web;
 
 import com.procurax.contract.service.ContractService;
+import com.procurax.contract.service.ContractAiReviewService;
+import com.procurax.contract.web.ContractSemanticSearchRequest;
+import com.procurax.contract.web.ContractSemanticSearchResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -28,9 +31,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class ContractController {
 
     private final ContractService contractService;
+    private final ContractAiReviewService contractAiReviewService;
 
-    public ContractController(ContractService contractService) {
+    public ContractController(ContractService contractService,
+                              ContractAiReviewService contractAiReviewService) {
         this.contractService = contractService;
+        this.contractAiReviewService = contractAiReviewService;
     }
 
     @GetMapping
@@ -58,6 +64,44 @@ public class ContractController {
     public ResponseEntity<ContractDocumentDownloadResponse> createDocumentDownload(@PathVariable UUID id) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(contractService.createDocumentDownload(id));
+    }
+
+    @GetMapping("/{id}/ai-reviews")
+    @PreAuthorize("hasAuthority('CONTRACT_READ')")
+    public List<ContractAiReviewResponse> listAiReviews(@PathVariable UUID id) {
+        return contractAiReviewService.list(id);
+    }
+
+    @PostMapping("/{id}/ai-reviews")
+    @PreAuthorize("hasAuthority('CONTRACT_APPROVE')")
+    public ContractAiReviewResponse reviewWithAi(@PathVariable UUID id) {
+        return contractAiReviewService.review(id);
+    }
+
+    @PostMapping(path = "/{id}/ai-reviews/from-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('CONTRACT_APPROVE')")
+    public ContractAiReviewResponse reviewDocumentWithAi(@PathVariable UUID id,
+                                                         @RequestPart("file") MultipartFile file) {
+        return contractAiReviewService.review(id, file);
+    }
+
+    @GetMapping("/{id}/ai-analyses")
+    @PreAuthorize("hasAuthority('CONTRACT_READ')")
+    public List<ContractAiAnalysisResponse> listAiAnalyses(@PathVariable UUID id) {
+        return contractAiReviewService.listAnalyses(id);
+    }
+
+    @PostMapping("/{id}/semantic-search")
+    @PreAuthorize("hasAuthority('CONTRACT_READ')")
+    public ContractSemanticSearchResponse semanticSearch(
+            @PathVariable UUID id, @Valid @RequestBody ContractSemanticSearchRequest request) {
+        return contractAiReviewService.semanticSearch(id, request);
+    }
+
+    @PostMapping("/{id}/ai-reviews/{reviewId}/analysis")
+    @PreAuthorize("hasAuthority('CONTRACT_APPROVE')")
+    public ContractAiAnalysisResponse analyzeReview(@PathVariable UUID id, @PathVariable UUID reviewId) {
+        return contractAiReviewService.analyze(id, reviewId);
     }
 
     @GetMapping("/{id}/audits")

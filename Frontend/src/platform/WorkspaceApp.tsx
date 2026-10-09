@@ -73,8 +73,14 @@ import {
   uploadContractDocument,
   listVendorDocuments,
   listContractAudits,
+  listContractAiReviews,
+  listContractAiAnalyses,
+  analyzeContractAiReview,
+  searchContractEvidence,
   listContractDecisions,
   uploadVendorDocument,
+  runContractAiReview,
+  uploadContractForAiReview,
   verifyVendorDocument,
   submitQuotation,
 } from "./api";
@@ -204,6 +210,7 @@ function WorkspaceShell({ onSignOut }: { onSignOut: () => Promise<void> }) {
       void queryClient.invalidateQueries({ queryKey: ["contracts", user.activeOrganization.id] });
       void queryClient.invalidateQueries({ queryKey: ["contract", user.activeOrganization.id] });
       void queryClient.invalidateQueries({ queryKey: ["contract-audits", user.activeOrganization.id] });
+      void queryClient.invalidateQueries({ queryKey: ["contract-ai-reviews", user.activeOrganization.id] });
       void queryClient.invalidateQueries({ queryKey: ["contract-decisions", user.activeOrganization.id] });
       void queryClient.invalidateQueries({ queryKey: ["vendors", user.activeOrganization.id] });
       void queryClient.invalidateQueries({ queryKey: ["vendor-documents", user.activeOrganization.id] });
@@ -895,6 +902,16 @@ function ContractDetailsPage() {
     queryFn: () => listContractDecisions(id),
     enabled: Boolean(id) && user.permissions.includes("CONTRACT_READ"),
   });
+  const aiReviews = useQuery({
+    queryKey: ["contract-ai-reviews", user.activeOrganization.id, id],
+    queryFn: () => listContractAiReviews(id),
+    enabled: Boolean(id) && user.permissions.includes("CONTRACT_READ"),
+  });
+  const aiAnalyses = useQuery({
+    queryKey: ["contract-ai-analyses", user.activeOrganization.id, id],
+    queryFn: () => listContractAiAnalyses(id),
+    enabled: Boolean(id) && user.permissions.includes("CONTRACT_READ"),
+  });
   const queryClient = useQueryClient();
   const addAudit = useMutation({
     mutationFn: (request: Parameters<typeof addContractAudit>[1]) => addContractAudit(id, request),
@@ -931,6 +948,33 @@ function ContractDetailsPage() {
     onSuccess: ({ downloadUrl }) => {
       window.location.assign(downloadUrl);
     },
+  });
+  const runAiReview = useMutation({
+    mutationFn: () => runContractAiReview(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["contract-ai-reviews", user.activeOrganization.id, id],
+      });
+    },
+  });
+  const uploadAiReview = useMutation({
+    mutationFn: (file: File) => uploadContractForAiReview(id, file),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["contract-ai-reviews", user.activeOrganization.id, id],
+      });
+    },
+  });
+  const analyzeAiReview = useMutation({
+    mutationFn: (reviewId: string) => analyzeContractAiReview(id, reviewId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["contract-ai-analyses", user.activeOrganization.id, id],
+      });
+    },
+  });
+  const semanticSearch = useMutation({
+    mutationFn: (query: string) => searchContractEvidence(id, query),
   });
   if (!user.permissions.includes("CONTRACT_READ")) return <PermissionNotice />;
   if (contract.isLoading) return <LoadingPanel />;
@@ -973,6 +1017,87 @@ function ContractDetailsPage() {
               </button></div>
           </form> : <EmptyState title="No document attached" detail="A document can be attached to a draft contract by an authorized user." />}
       {downloadDocument.isError && <InlineError error={downloadDocument.error} />}
+    </section>
+    <section className="surface-card contract-content contract-audits">
+      <div className="section-heading"><div><h2>AI evidence review</h2>
+        <p>Retrieves excerpts from draft terms for human review; it is not legal advice or an approval.</p>
+      </div>
+        {user.permissions.includes("CONTRACT_APPROVE") && record.status === "DRAFT" &&
+          <button className="secondary-button" type="button" disabled={runAiReview.isPending}
+            onClick={() => runAiReview.mutate()}>
+            {runAiReview.isPending ? "Reviewing…" : "Run evidence review"}
+          </button>}
+      </div>
+      {runAiReview.isError && <InlineError error={runAiReview.error} />}
+      {user.permissions.includes("CONTRACT_APPROVE") && record.status === "DRAFT" &&
+        <form className="contract-form audit-entry-form" onSubmit={(event) => {
+          event.preventDefault();
+          const file = new FormData(event.currentTarget).get("ai-document");
+          if (file instanceof File && file.size > 0) uploadAiReview.mutate(file);
+        }}>
+          <label>Review another PDF or DOCX (source file not stored; extracted chunks are tenant-indexed)
+            <input name="ai-document" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+          </label>
+          {uploadAiReview.isError && <InlineError error={uploadAiReview.error} />}
+          <button className="secondary-button" disabled={uploadAiReview.isPending}>
+            {uploadAiReview.isPending ? "Extracting and reviewing…" : "Review uploaded document"}
+          </button>
+        </form>}
+      {aiReviews.isLoading ? <LoadingPanel /> : aiReviews.isError ? <InlineError error={aiReviews.error} /> :
+        aiReviews.data?.length ? <div className="contract-audit-list">{aiReviews.data.map((review) => <article className="contract-audit-item" key={review.id}>
+          <div><StatusBadge value="HUMAN REVIEW REQUIRED" /><strong>Evidence retrieval</strong>
+            <small>{new Date(review.createdAt).toLocaleString()} · reviewer {review.requestedByUserId}</small></div>
+          {user.permissions.includes("CONTRACT_APPROVE") && record.status === "DRAFT" &&
+            <button className="secondary-button" type="button" disabled={analyzeAiReview.isPending}
+              onClick={() => analyzeAiReview.mutate(review.id)}>
+              {analyzeAiReview.isPending ? "Analyzing…" : "Summarize cited evidence"}
+            </button>}
+          {review.result.clauses.map((clause) => <div key={clause.clause}>
+            <strong>{clause.clause.replaceAll("_", " ")}</strong><p>{clause.reviewer_note}</p>
+            {clause.citations.map((citation) => <blockquote key={`${citation.chunk_id}-${citation.start_character}`}>
+              {citation.excerpt}<small>Characters {citation.start_character}–{citation.end_character}</small>
+            </blockquote>)}
+          </div>)}
+        </article>)}</div> : <EmptyState title="No AI evidence reviews" detail="An authorized reviewer can retrieve cited excerpts from the draft terms." />}
+      {analyzeAiReview.isError && <InlineError error={analyzeAiReview.error} />}
+      <form className="contract-form audit-entry-form" onSubmit={(event) => {
+        event.preventDefault();
+        const query = new FormData(event.currentTarget).get("semantic-query");
+        if (typeof query === "string" && query.trim()) semanticSearch.mutate(query.trim());
+      }}>
+        <label>Search indexed contract evidence
+          <input name="semantic-query" type="search" maxLength={1000}
+            placeholder="e.g. How can either party end the agreement?" required />
+        </label>
+        <button className="secondary-button" disabled={semanticSearch.isPending || !aiReviews.data?.length}>
+          {semanticSearch.isPending ? "Searching…" : "Search evidence"}
+        </button>
+      </form>
+      {semanticSearch.isError && <InlineError error={semanticSearch.error} />}
+      {semanticSearch.data && <div className="contract-audit-list">
+        {!semanticSearch.data.matches.length
+          ? <EmptyState title="No indexed evidence" detail="Run an evidence review to index this draft first." />
+          : semanticSearch.data.matches.map((match) => <article className="contract-audit-item"
+            key={`${match.reviewId}-${match.chunkId}`}>
+            <div><strong>Semantic match · {(match.cosineSimilarity * 100).toFixed(1)}% cosine similarity</strong>
+              <small>Chunk {match.chunkId} · characters {match.startCharacter}–{match.endCharacter}</small>
+            </div>
+            <blockquote>{match.excerpt}</blockquote>
+          </article>)}
+      </div>}
+      {aiAnalyses.isLoading ? <LoadingPanel /> : aiAnalyses.isError ? <InlineError error={aiAnalyses.error} /> :
+        aiAnalyses.data?.length ? <div className="contract-audit-list">{aiAnalyses.data.map((analysis) =>
+          <article className="contract-audit-item" key={analysis.id}>
+            <div><StatusBadge value="ADVISORY · HUMAN REVIEW REQUIRED" />
+              <strong>Local model analysis ({analysis.model})</strong>
+              <small>{new Date(analysis.createdAt).toLocaleString()} · reviewer {analysis.requestedByUserId}</small>
+            </div>
+            {analysis.result.summaries.map((summary) => <div key={`${analysis.id}-${summary.clause}`}>
+              <strong>{summary.clause.replaceAll("_", " ")}</strong><p>{summary.summary}</p>
+              {summary.reviewer_questions.map((question, index) => <p key={index}><b>Reviewer question:</b> {question}</p>)}
+              <small>Cited evidence chunks: {summary.cited_chunk_ids.join(", ") || "none"}</small>
+            </div>)}
+          </article>)}</div> : <EmptyState title="No model summaries" detail="Generate a summary from a persisted evidence review. Results remain advisory." />}
     </section>
     <section className="surface-card contract-content contract-audits">
       <div className="section-heading"><div><h2>Human review findings</h2><p>Findings are attributed to the authenticated reviewer and recorded in the audit trail.</p></div><StatusBadge value={record.auditStatus} /></div>

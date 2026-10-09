@@ -101,15 +101,15 @@ class EvidenceCitation(BaseModel):
     start_character: int
     end_character: int
     relevance_score: float
-    excerpt: str
+    excerpt: str = Field(max_length=CHUNK_SIZE)
 
 
 class ClauseEvidence(BaseModel):
-    clause: str
-    question: str
+    clause: str = Field(max_length=50)
+    question: str = Field(max_length=500)
     evidence_status: Literal["EVIDENCE_FOUND", "NO_MATCHING_EVIDENCE"]
-    citations: list[EvidenceCitation]
-    reviewer_note: str
+    citations: list[EvidenceCitation] = Field(max_length=MAX_CITATIONS_PER_CLAUSE)
+    reviewer_note: str = Field(max_length=500)
 
 
 class ContractReviewResponse(BaseModel):
@@ -138,7 +138,7 @@ def _tokens(text: str) -> list[str]:
     ]
 
 
-def _chunks(text: str) -> list[_Chunk]:
+def chunk_contract_text(text: str) -> list[_Chunk]:
     normalized = text
     chunks: list[_Chunk] = []
     start = 0
@@ -219,7 +219,7 @@ def review_contract(
     requested_by_user_id: UUID,
 ) -> ContractReviewResponse:
     text = request.contract_text
-    chunks = _chunks(text)
+    chunks = chunk_contract_text(text)
     clauses: list[ClauseEvidence] = []
 
     for definition in CLAUSE_DEFINITIONS:

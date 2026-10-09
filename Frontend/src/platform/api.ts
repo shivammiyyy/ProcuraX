@@ -2,6 +2,9 @@ import axios from "axios";
 import type {
   BusinessRecord,
   Contract,
+  ContractAiAnalysis,
+  ContractAiReview,
+  ContractSemanticSearch,
   ContractAudit,
   ContractDecision,
   Invoice,
@@ -121,6 +124,38 @@ export async function createContractDocumentDownload(id: string): Promise<{ down
     `/api/v1/contracts/${id}/document/download`,
     { headers: { "Cache-Control": "no-store" } },
   );
+  return response.data;
+}
+
+export async function listContractAiReviews(id: string): Promise<ContractAiReview[]> {
+  const response = await api.get<ContractAiReview[]>(`/api/v1/contracts/${id}/ai-reviews`);
+  return response.data;
+}
+
+export async function runContractAiReview(id: string): Promise<ContractAiReview> {
+  const response = await api.post<ContractAiReview>(`/api/v1/contracts/${id}/ai-reviews`);
+  return response.data;
+}
+
+export async function uploadContractForAiReview(id: string, file: File): Promise<ContractAiReview> {
+  const data = new FormData();
+  data.append("file", file);
+  const response = await api.post<ContractAiReview>(`/api/v1/contracts/${id}/ai-reviews/from-document`, data);
+  return response.data;
+}
+
+export async function listContractAiAnalyses(id: string): Promise<ContractAiAnalysis[]> {
+  const response = await api.get<ContractAiAnalysis[]>(`/api/v1/contracts/${id}/ai-analyses`);
+  return response.data;
+}
+
+export async function analyzeContractAiReview(id: string, reviewId: string): Promise<ContractAiAnalysis> {
+  const response = await api.post<ContractAiAnalysis>(`/api/v1/contracts/${id}/ai-reviews/${reviewId}/analysis`);
+  return response.data;
+}
+
+export async function searchContractEvidence(id: string, query: string): Promise<ContractSemanticSearch> {
+  const response = await api.post<ContractSemanticSearch>(`/api/v1/contracts/${id}/semantic-search`, { query });
   return response.data;
 }
 

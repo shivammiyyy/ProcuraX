@@ -14,7 +14,7 @@ Legacy details: [LEGACY_ARCHITECTURE.md](LEGACY_ARCHITECTURE.md).
 - Phase 10 (FastAPI foundation): isolated, non-root Python service with typed configuration and loopback-only Compose exposure. Health, liveness and readiness endpoints are covered by focused tests; this foundation has no database access or Kafka consumers.
 - Phase 11 (procurement planner): authenticated internal API creates a tenant-attributed, deterministic RFQ draft proposal from validated user requirements. It does not mutate Spring state, infer vendor/pricing facts, or bypass human review.
 - Phase 12 (vendor evaluation): FastAPI loads the existing ONNX artifact and returns tenant-attributed model advice and deterministic-factor explanations behind backend bearer authentication. The official score remains calculated by Spring and is never changed by the model.
-- Phase 13 (contract intelligence foundation): authenticated, ephemeral BM25 retrieval returns cited source excerpts for five clause topics and requires human review. PDF/DOCX extraction, persistent pgvector indexing, LLM analysis and Spring orchestration remain.
+- Phase 13 (contract intelligence foundation): authenticated BM25 evidence retrieval returns cited source excerpts for five clause topics. Spring invokes it with server-derived tenant/actor context and persists tenant-scoped review snapshots. Authenticated Spring routes submit temporary PDF/DOCX content for extraction, index tenant-scoped chunk text and Qwen 1,024-dimensional embeddings in pgvector, persist schema-constrained Ollama summaries against cited evidence, and semantically search the latest draft index.
 - Phase 14 (purchasing policy engine): tenant-scoped, versioned policy rules support category-specific amount caps, approval thresholds, currency allowlists and minimum quote counts. Evaluation is fail-closed when no rule applies, mismatched threshold currencies require manual review, and rule/evaluation changes write audit and outbox events. This is policy eligibility only, not approval or purchase authorization.
 - Phase 15 (human approvals): policy-gated requests bind to the exact accepted quotation/RFQ, snapshot the evaluation, validate an active same-organization approver, prevent self-approval, and support assigned approve/reject decisions with required rejection reasons and transactional audit/outbox events. This is a single-approver workflow; multi-step routing and notifications remain.
 - Phase 16 (purchase orders): an approved, quote-bound request can issue one immutable tenant-scoped PO with a vendor and line-item snapshot. Amount and currency must match; composite tenant foreign keys, row locks and uniqueness constraints prevent cross-tenant links and duplicate issuance. Vendor delivery integrations and downstream fulfillment remain.
@@ -23,8 +23,8 @@ Legacy details: [LEGACY_ARCHITECTURE.md](LEGACY_ARCHITECTURE.md).
 - Phase 19 (realtime updates): authenticated `GET /api/v1/events` streams Kafka event metadata scoped to the organization in the authenticated session and guarded by `EVENT_STREAM_READ`. Per-organization connection limits and bounded client queues are enforced; reconnect requires refetching current state.
 
 **IN PROGRESS**
-- Phase 6 follow-through: frontend API cutover and legacy-route removal. Spring supports Cloudinary-backed vendor document uploads, tenant-scoped references and one-way verification. Legacy RFQ/quotation/contract uploads remain on Node until those domains cut over. FastAPI now runs the legacy ONNX model for advisory evaluation explanations; Spring persistence and orchestration remain.
-- Phase 20 (frontend migration): added a TypeScript/TanStack Query workspace shell, OIDC session entry, permission-derived navigation, organization switching, SSE-driven cache refresh, Spring-backed RFQ creation, multi-line draft editing, quotation details/review, approval decisions, PO list/detail with provenance, vendor create/edit/member assignment and document upload/verification, tenant-scoped contract draft/list/detail/document upload and short-lived signed download, human audit findings and maker-checker decisions, sandbox payment detail/receipts, and shipment/invoice/reconciliation detail views. Contract DTOs expose document metadata only; tenant and vendor membership are checked before signed Cloudinary downloads are generated. Legacy route retirement remains.
+- Phase 6 follow-through: Spring-backed workspace routing is active; legacy login/RFQ/quotation/contract URLs redirect into it. Legacy Node route and data retirement still need staged migration. Legacy RFQ/quotation uploads remain in Node. FastAPI's ONNX advisory still needs Spring persistence/orchestration.
+- Phase 20 (frontend migration): added a TypeScript/TanStack Query workspace shell, OIDC session entry, permission-derived navigation, organization switching, SSE-driven cache refresh, Spring-backed RFQ creation, multi-line draft editing, quotation details/review, approval decisions, PO list/detail with provenance, vendor create/edit/member assignment and document upload/verification, tenant-scoped contract draft/list/detail/document upload and short-lived signed download, human audit findings, persisted cited AI evidence reviews, maker-checker decisions, sandbox payment detail/receipts, and shipment/invoice/reconciliation detail views. Contract DTOs expose document metadata only; tenant and vendor membership are checked before signed Cloudinary downloads are generated. Legacy backend route retirement remains.
 - Phases 7–8 (core delivery slice): Spring writes RFQ, quotation, vendor and vendor-document lifecycle events plus audit rows transactionally; Kafka dispatch uses row locks, capped retries, a DLT, and a consumer idempotency store. Business consumers, retries/DLT integration tests, and production Kafka hardening remain.
 - Phase 9 (gateway foundation): Vert.x streams HTTP requests/responses to Spring, preserves session/CSRF cookies, replaces spoofable correlation and forwarding headers, provides an independent health endpoint, and applies bounded per-peer-IP rate limits. Authenticated Spring SSE is proxied through the gateway. Distributed quotas, TLS termination and production hardening remain.
 
@@ -69,7 +69,7 @@ Logical boundaries follow the requested layout; Spring services are one modular 
 
 ```
 Frontend/                     existing SPA, redesigned incrementally (TypeScript target)
-Backend/                      legacy Node API (removed per domain)
+(Backend/ legacy Node API: removed)
 services/procurax-platform/   Spring Boot core (packages: identity, organization, vendor, rfq, quotation,
                               purchaseorder, approval, contract, payment, order, invoice, reconciliation,
                               audit, outbox, kafka)
@@ -98,7 +98,7 @@ Per domain: implement in Spring → point the frontend at `/api/v1` → test (co
 | 10 | FastAPI platform foundation | DONE |
 | 11 | Procurement planner (human-reviewed RFQ draft proposals) | DONE |
 | 12 | Vendor evaluation agent and legacy ONNX advisory | DONE |
-| 13 | Contract evidence retrieval (ephemeral BM25 foundation) | IN PROGRESS |
+| 13 | Contract evidence retrieval and human-reviewed AI workflow | IN PROGRESS |
 | 14 | Purchasing policy engine | DONE |
 | 15 | Human approval workflows | DONE |
 | 16 | Purchase orders | DONE |
@@ -106,25 +106,21 @@ Per domain: implement in Spring → point the frontend at `/api/v1` → test (co
 | 18 | Fulfillment and reconciliation | DONE |
 | 19 | Authenticated tenant-scoped Kafka-to-SSE event updates | DONE |
 | 20 | Frontend redesign (TS, TanStack Query, Recharts) and API cutover | IN PROGRESS |
-| 21–23 | Audit/observability, security + integration tests, documentation, README | TODO |
+| 21–23 | Audit/observability, security + integration tests, documentation, README | IN PROGRESS |
 
-## Remaining phases
+## Five delivery phases
 
-- Phase 6: frontend API cutover; migrate RFQ, quotation, and contract upload flows; migrate remaining RFQ/quotation/contract domains and retire corresponding Node routes.
-- Phases 7–8: add business consumers, automated retry/DLT coverage, and harden Kafka for deployment (security, schema compatibility, operational replay and consumer retry policy).
-- Phase 9: Vert.x is the HTTP gateway. Authenticated Kafka-to-SSE fan-out is implemented in Spring so organization scope comes from the authenticated session; distributed quotas, TLS/production deployment controls and full public API cutover remain.
-- Phase 10: FastAPI service foundation (health/configuration/container); done.
-- Phase 11: authenticated internal procurement planner returns deterministic, tenant-attributed RFQ draft proposals; done. Spring-side execution remains intentionally separate.
-- Phase 12: authenticated vendor-evaluation advice with legacy ONNX inference and deterministic factor explanations; done. Persisting AI explanations alongside Spring scores and authenticated Spring-to-agent orchestration remain.
-- Phase 13: add secure PDF/DOCX extraction, persisted tenant-scoped vector indexing, LLM-assisted analysis grounded in retrieved citations, Spring orchestration, and contract-domain migration. Current ephemeral lexical retrieval is only a foundation.
-- Phase 14: policy engine is implemented. Flyway V11 safely disables any pre-existing amount-threshold rules until an administrator reconfigures each with an explicit currency; category-scoped rules without a match require review.
-- Phase 15: basic single-approver workflow is implemented. Configurable multi-step rules and notifications remain.
-- Phase 16: purchase order creation/list/detail and transactional `PURCHASE_ORDER_ISSUED` event are implemented. Vendor notification, cancellation and fulfillment remain.
-- Phase 17: PO-scoped payment mandates, sandbox authorization/capture/full-refund, idempotency and receipts are implemented. Live payment provider, partial refunds and production compliance remain intentionally out of scope.
-- Phase 18: partial shipments, invoice recording and immutable three-way PO/invoice/delivery/payment reconciliation are implemented. Invoices are manually recorded metadata only (no document upload or vendor submission), and settlement/bank feeds, external carrier integrations and automated exception resolution remain.
-- Phase 19: Spring consumes business Kafka events and streams metadata-only SSE updates from `/api/v1/events`, scoped to the authenticated organization's session and `EVENT_STREAM_READ` permission. Connection and per-client queue limits are enforced; reconnect requires a state refetch rather than event replay.
-- Phase 20: Continue the React/TypeScript frontend redesign and API cutover. The new `/workspace` uses Spring sessions, tenant switching, RBAC permissions and SSE; procurement sourcing with multi-line RFQ draft edits, quotation review, vendor management/documents, approval decisions, PO detail, contract draft/document upload/short-lived signed download/human audit/maker-checker decisions, sandbox payment details, shipment, invoice and reconciliation workflows are connected. Retire legacy pages only after replacement coverage.
-- Phases 21–23: complete audit/observability, security and integration coverage, and production/developer documentation and README.
+These five delivery phases group the remaining migration tasks into independently reviewable milestones. Core procurement workflows and the earlier foundation phases above are already present; these phases close the remaining cutover and production-readiness gaps.
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1. Frontend cutover | Route existing login, RFQ, quotation, and contract URLs into the Spring-session `/workspace`; remove legacy auth from the active app shell and inventory any remaining old API callers. | DONE: old entry URLs now redirect to Spring workspace routes and legacy auth/provider code is no longer mounted. Unreachable legacy source is retained for rollback. |
+| 2. Event delivery | Add/verify business consumers, retry/DLT and idempotency integration coverage, schema/version handling, and safe operational replay. | IN PROGRESS: transactional outbox, bounded retries, DLT publishing, SSE invalidation, unit and broker-backed tests exist. A tenant-scoped `OUTBOX_REPLAY` operation lets platform admins requeue an original dead-lettered event up to three times, records a mandatory reason in audit, and preserves the event ID for consumer deduplication. Durable domain consumers, automated replay operations, and schema/version enforcement remain. |
+| 3. Edge and deployment | Make the gateway the production edge, isolate Spring from public access, add deployment-grade TLS/trusted-proxy configuration and distributed rate limits, and define health/drain behavior. | IN PROGRESS: Compose and Vite now route host traffic through the gateway and Spring is no longer host-published. TLS termination, distributed limits, graceful draining, and deployment verification remain. |
+| 4. Agent and workflow completion | Add tenant-scoped persistent contract document extraction/indexing, authenticated Spring-to-agent orchestration, grounded findings persisted with human review, and migrate remaining frontend workflows without bypassing policy/approval. | IN PROGRESS: Spring uses a backend-only token and server-derived actor/tenant context; validates and persists BM25 evidence, Ollama summaries and Qwen embedding chunks in pgvector, and exposes review/extraction/analysis history and tenant-scoped semantic search in the workspace. Remaining frontend/domain gaps and vector-index retention/rebuild operations remain. |
+| 5. Production readiness | Complete audit/observability, security and cross-domain integration coverage, migration runbooks, production/developer documentation, and staged legacy route/data retirement. | IN PROGRESS: legacy Node backend removed (no MongoDB data import); README and local development/gateway documentation updated; broader operational readiness and migration verification remain. |
+
+Detailed boundaries for completed and remaining legacy, Kafka, gateway, AI, payment, fulfillment, and UI work are recorded in the phase table and feature-specific documents below.
 
 Suggested domain order for legacy removal: auth → users/orgs → vendors → RFQs → quotations → evaluation → contracts → POs → approvals → payments → orders → audit.
 

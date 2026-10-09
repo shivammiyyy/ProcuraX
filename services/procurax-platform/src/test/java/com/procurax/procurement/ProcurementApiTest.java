@@ -31,6 +31,8 @@ import com.procurax.identity.repository.PermissionRepository;
 import com.procurax.identity.repository.RoleRepository;
 import com.procurax.identity.repository.UserRepository;
 import com.procurax.identity.security.SecurityPrincipal;
+import com.procurax.contract.service.ContractIntelligenceClient;
+import com.procurax.contract.web.ContractEmbeddingResponse;
 import com.procurax.quotation.domain.Quotation;
 import com.procurax.quotation.domain.QuotationItem;
 import com.procurax.quotation.repository.QuotationItemRepository;
@@ -77,7 +79,7 @@ class ProcurementApiTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg17");
 
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
@@ -94,6 +96,7 @@ class ProcurementApiTest {
     @Autowired QuotationItemRepository quotationItemRepository;
     @Autowired JdbcTemplate jdbc;
     @MockitoBean DocumentStorage documentStorage;
+    @MockitoBean ContractIntelligenceClient contractIntelligenceClient;
 
     private Organization organization;
     private User buyer;
@@ -300,6 +303,195 @@ class ProcurementApiTest {
         verify(documentStorage, times(1)).createDownloadUrl(eq("procurement/contract_documents/agreement"),
                 eq("pdf"), eq("raw"), eq("authenticated"), eq("agreement.pdf"), any(Instant.class));
         verify(documentStorage, never()).delete(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void contractAiEvidenceReviewIsTenantScopedPersistedAndHumanReviewed() throws Exception {
+        Vendor vendor = vendorRepository.save(new Vendor(
+                organization.getId(), "AI Review Supplier", null, "Facilities", 30));
+        Rfq rfq = rfqRepository.save(new Rfq(organization.getId(), "Desks",
+                "Office desks", "RFQ", "Facilities", BigDecimal.valueOf(800), "INR",
+                Instant.now().plusSeconds(3600), 20, UUID.randomUUID()));
+        Quotation quotation = new Quotation(organization.getId(), rfq.getId(), vendor.getId(),
+                BigDecimal.valueOf(700), "INR", 12, 30, null, objectMapper.readTree("{}"), UUID.randomUUID());
+        quotation.updateStatus("ACCEPTED");
+        quotation = quotationRepository.save(quotation);
+        MvcResult created = mvc.perform(post("/api/v1/contracts")
+                        .with(authentication(buyerToken)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"quotationId":"%s","content":"Payment is due within thirty days.",
+                                 "startDate":"2026-11-01","endDate":"2027-10-31"}
+                                """.formatted(quotation.getId())))
+                .andExpect(status().isOk())
+                .andReturn();
+        UUID contractId = UUID.fromString(objectMapper.readTree(
+                created.getResponse().getContentAsString()).get("id").asText());
+        JsonNode aiResult = objectMapper.readTree("""
+                {
+                  "contract_id":"%s",
+                  "organization_id":"%s",
+                  "requested_by_user_id":"%s",
+                  "clauses":[{
+                    "clause":"payment",
+                    "question":"Does the agreement specify payment timing?",
+                    "evidence_status":"EVIDENCE_FOUND",
+                    "citations":[{
+                      "chunk_id":1,"start_character":0,"end_character":35,
+                      "relevance_score":1.2,"excerpt":"Payment is due within thirty days."
+                    }],
+                    "reviewer_note":"Review the cited language in the full agreement."
+                  }],
+                  "retrieval_method":"ephemeral_bm25",
+                  "document_persisted":false,
+                  "requires_human_review":true
+                }
+                """.formatted(contractId, organization.getId(), buyer.getId()));
+        when(contractIntelligenceClient.review(contractId, "Payment is due within thirty days.",
+                organization.getId(), buyer.getId())).thenReturn(aiResult);
+        var embeddingResult = new ContractEmbeddingResponse(contractId, organization.getId(), buyer.getId(),
+                "qwen3-embedding:0.6b", 1024,
+                java.util.List.of(new ContractEmbeddingResponse.Chunk(1, 0, 35,
+                        "Payment is due within thirty days.", java.util.Collections.nCopies(1024, 0.01))));
+        when(contractIntelligenceClient.embed(eq(contractId), anyString(),
+                eq(organization.getId()), eq(buyer.getId()))).thenReturn(embeddingResult);
+
+        MvcResult review = mvc.perform(post("/api/v1/contracts/{id}/ai-reviews", contractId)
+                        .with(authentication(buyerToken)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retrievalMethod").value("ephemeral_bm25"))
+                .andExpect(jsonPath("$.result.requires_human_review").value(true))
+                .andExpect(jsonPath("$.result.clauses[0].citations[0].excerpt")
+                        .value("Payment is due within thirty days."))
+                .andReturn();
+        String reviewId = objectMapper.readTree(review.getResponse().getContentAsString())
+                .get("id").asText();
+
+        mvc.perform(get("/api/v1/contracts/{id}/ai-reviews", contractId)
+                        .with(authentication(buyerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(reviewId))
+                .andExpect(jsonPath("$[0].result.document_persisted").value(false));
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM contract_ai_reviews
+                WHERE organization_id = ? AND contract_id = ?
+                """, Integer.class, organization.getId(), contractId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM outbox_events
+                WHERE aggregate_id = ? AND event_type = 'CONTRACT_AI_REVIEW_RECORDED'
+                """, Integer.class, contractId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM contract_ai_review_chunks
+                WHERE organization_id = ? AND contract_id = ? AND review_id = ?
+                """, Integer.class, organization.getId(), contractId, UUID.fromString(reviewId))).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT vector_dims(embedding) FROM contract_ai_review_chunks
+                WHERE organization_id = ? AND contract_id = ? AND review_id = ?
+                """, Integer.class, organization.getId(), contractId, UUID.fromString(reviewId))).isEqualTo(1024);
+        String semanticQuery = "When is payment due?";
+        when(contractIntelligenceClient.embed(eq(contractId), eq(semanticQuery),
+                eq(organization.getId()), eq(buyer.getId())))
+                .thenReturn(new ContractEmbeddingResponse(contractId, organization.getId(), buyer.getId(),
+                        "qwen3-embedding:0.6b", 1024,
+                        java.util.List.of(new ContractEmbeddingResponse.Chunk(1, 0, semanticQuery.length(),
+                                semanticQuery, java.util.Collections.nCopies(1024, 0.01)))));
+        mvc.perform(post("/api/v1/contracts/{id}/semantic-search", contractId)
+                        .with(authentication(buyerToken)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"%s"}
+                                """.formatted(semanticQuery)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.embeddingModel").value("qwen3-embedding:0.6b"))
+                .andExpect(jsonPath("$.matches[0].reviewId").value(reviewId))
+                .andExpect(jsonPath("$.matches[0].excerpt").value("Payment is due within thirty days."))
+                .andExpect(jsonPath("$.matches[0].cosineSimilarity").value(1.0));
+
+        JsonNode analysisResult = objectMapper.readTree("""
+                {
+                  "contract_id":"%s",
+                  "organization_id":"%s",
+                  "requested_by_user_id":"%s",
+                  "model":"qwen3:8b",
+                  "summaries":[{
+                    "clause":"payment",
+                    "summary":"Payment is due in thirty days.",
+                    "reviewer_questions":["Confirm late-payment consequences."],
+                    "cited_chunk_ids":[1]
+                  }],
+                  "advisory_only":true,
+                  "requires_human_review":true
+                }
+                """.formatted(contractId, organization.getId(), buyer.getId()));
+        when(contractIntelligenceClient.analyze(eq(contractId), any(JsonNode.class),
+                eq(organization.getId()), eq(buyer.getId()))).thenReturn(analysisResult);
+
+        mvc.perform(post("/api/v1/contracts/{id}/ai-reviews/{reviewId}/analysis", contractId, reviewId)
+                        .with(authentication(buyerToken)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewId").value(reviewId))
+                .andExpect(jsonPath("$.model").value("qwen3:8b"))
+                .andExpect(jsonPath("$.result.requires_human_review").value(true));
+        mvc.perform(get("/api/v1/contracts/{id}/ai-analyses", contractId)
+                        .with(authentication(buyerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].result.summaries[0].cited_chunk_ids[0]").value(1));
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM contract_ai_analyses
+                WHERE organization_id = ? AND contract_id = ?
+                """, Integer.class, organization.getId(), contractId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM outbox_events
+                WHERE aggregate_id = ? AND event_type = 'CONTRACT_AI_ANALYSIS_RECORDED'
+                """, Integer.class, contractId)).isEqualTo(1);
+        when(contractIntelligenceClient.extractText(any(byte[].class),
+                eq(organization.getId()), eq(buyer.getId()))).thenReturn("Extracted PDF agreement.");
+        JsonNode extractedReview = objectMapper.readTree("""
+                {
+                  "contract_id":"%s","organization_id":"%s","requested_by_user_id":"%s",
+                  "clauses":[],"retrieval_method":"ephemeral_bm25",
+                  "document_persisted":false,"requires_human_review":true
+                }
+                """.formatted(contractId, organization.getId(), buyer.getId()));
+        when(contractIntelligenceClient.review(contractId, "Extracted PDF agreement.",
+                organization.getId(), buyer.getId())).thenReturn(extractedReview);
+        when(contractIntelligenceClient.embed(eq(contractId), eq("Extracted PDF agreement."),
+                eq(organization.getId()), eq(buyer.getId())))
+                .thenReturn(new ContractEmbeddingResponse(contractId, organization.getId(), buyer.getId(),
+                        "qwen3-embedding:0.6b", 1024,
+                        java.util.List.of(new ContractEmbeddingResponse.Chunk(1, 0, 24,
+                                "Extracted PDF agreement.", java.util.Collections.nCopies(1024, 0.01)))));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/v1/contracts/{id}/ai-reviews/from-document", contractId)
+                        .file(new MockMultipartFile("file", "draft.pdf", "application/pdf", "%PDF-test".getBytes()))
+                        .with(authentication(buyerToken)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.requires_human_review").value(true));
+
+        Organization foreignOrganization = organizationRepository.save(new Organization(
+                "Foreign AI Org", "contract-ai-foreign-" + UUID.randomUUID()));
+        User foreignUser = userRepository.save(new User(
+                "contract-ai-foreign-" + UUID.randomUUID() + "@example.com", "Foreign User",
+                "google", UUID.randomUUID().toString()));
+        Role adminRole = roleRepository.findByName("ORG_ADMIN").orElseThrow();
+        memberRepository.save(new OrganizationMember(foreignOrganization.getId(), foreignUser.getId(),
+                adminRole.getId()));
+        OAuth2AuthenticationToken foreignToken = token(foreignUser, foreignOrganization, "ORG_ADMIN",
+                permissionRepository.findPermissionNamesByRoleId(adminRole.getId()).toArray(String[]::new));
+        mvc.perform(get("/api/v1/contracts/{id}/ai-reviews", contractId).with(authentication(foreignToken)))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/contracts/{id}/ai-analyses", contractId).with(authentication(foreignToken)))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/contracts/{id}/ai-reviews/{reviewId}/analysis", contractId, reviewId)
+                        .with(authentication(foreignToken)).with(csrf()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/contracts/{id}/semantic-search", contractId)
+                        .with(authentication(foreignToken)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"query":"payment"}
+                                """))
+                .andExpect(status().isNotFound());
     }
 
     @Test

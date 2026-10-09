@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
-  const backend = env.VITE_DEV_API_PROXY || 'http://localhost:8080';
+  const backend = env.VITE_DEV_API_PROXY || 'http://localhost:8088';
 
   return {
     plugins: [react(), tailwindcss()],
