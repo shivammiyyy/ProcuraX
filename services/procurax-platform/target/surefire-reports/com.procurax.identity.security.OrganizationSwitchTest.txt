@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.procurax.identity.security.OrganizationSwitchTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 28.93 s -- in com.procurax.identity.security.OrganizationSwitchTest

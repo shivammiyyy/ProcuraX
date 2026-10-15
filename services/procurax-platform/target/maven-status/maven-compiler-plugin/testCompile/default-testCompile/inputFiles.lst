@@ -1,0 +1,10 @@
+/workspace/src/test/java/com/procurax/FoundationTest.java
+/workspace/src/test/java/com/procurax/common/correlation/CorrelationIdFilterTest.java
+/workspace/src/test/java/com/procurax/identity/security/CustomOAuth2UserServiceTest.java
+/workspace/src/test/java/com/procurax/identity/security/OrganizationSwitchTest.java
+/workspace/src/test/java/com/procurax/identity/security/SecurityAuthorizationTest.java
+/workspace/src/test/java/com/procurax/outbox/OutboxDispatcherTest.java
+/workspace/src/test/java/com/procurax/outbox/OutboxKafkaIntegrationTest.java
+/workspace/src/test/java/com/procurax/procurement/ProcurementApiTest.java
+/workspace/src/test/java/com/procurax/realtime/RealtimeEventStreamTest.java
+/workspace/src/test/java/com/procurax/vendor/service/CloudinaryDocumentStorageTest.java

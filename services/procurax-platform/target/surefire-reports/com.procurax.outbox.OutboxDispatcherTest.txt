@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.procurax.outbox.OutboxDispatcherTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.168 s -- in com.procurax.outbox.OutboxDispatcherTest

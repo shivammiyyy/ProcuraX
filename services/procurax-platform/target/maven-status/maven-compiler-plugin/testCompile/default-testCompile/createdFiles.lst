@@ -1,0 +1,11 @@
+com/procurax/identity/security/CustomOAuth2UserServiceTest.class
+com/procurax/identity/security/OrganizationSwitchTest.class
+com/procurax/identity/security/SecurityAuthorizationTest.class
+com/procurax/procurement/ProcurementApiTest.class
+com/procurax/FoundationTest.class
+com/procurax/outbox/OutboxDispatcherTest.class
+com/procurax/outbox/OutboxKafkaIntegrationTest.class
+com/procurax/procurement/ProcurementApiTest$QuoteFixture.class
+com/procurax/common/correlation/CorrelationIdFilterTest.class
+com/procurax/realtime/RealtimeEventStreamTest.class
+com/procurax/vendor/service/CloudinaryDocumentStorageTest.class
